@@ -1,0 +1,31 @@
+# Build outputs
+build/
+out/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+CTestTestfile.cmake
+Testing/
+install_manifest.txt
+
+# Compiled artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+
+# Local editor/system files
+.DS_Store
+.idea/
+.vscode/
+
+# Generated local test exports
+spt_test_export.csv
+
