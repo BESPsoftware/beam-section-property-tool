@@ -18,17 +18,26 @@ Crane Runway sections.
 
 ## Verification Run
 
-Executed in the development environment using the system C++ compiler because
-`cmake` is not installed on this machine:
+Executed in the development environment with CMake and AppleClang:
 
 ```text
-c++ -std=c++17 ... -o /tmp/SectionPropertyTests
-/tmp/SectionPropertyTests
-SectionPropertyTests passed
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build --output-on-failure
+./build/Library/bin/example1_parametric
+./build/Library/bin/example2_canvas
+./build/Library/bin/example3_dll_batch
 ```
 
-The three example programs were also compiled directly against the core/API
-sources and executed successfully.
+Result:
+
+- CMake configure completed successfully with AppleClang.
+- Qt5 Widgets was not found, so the optional Qt GUI target was not built or
+  verified in this run.
+- Core static library built successfully as `libSectionPropertyCore.a`.
+- C API shared library built successfully as `libSectionPropertyTool.dylib`.
+- Examples built and executed successfully.
+- CTest passed: `1/1 tests passed`.
 
 ## Tolerances
 

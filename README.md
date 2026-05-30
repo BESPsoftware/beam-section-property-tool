@@ -1,0 +1,105 @@
+# Beam Section Property Tool
+
+This is a C++17 beam/section property calculation tool for parametric and
+canvas-defined cross-sections. It includes reusable core modules, a
+C-compatible API, example programs, tests, documentation, and an optional Qt
+Widgets GUI target for Qt 5.15.2 environments.
+
+The branch is a reviewable whole implementation, not a final acceptance-ready
+release.
+
+## Current implementation status
+
+Implemented in this branch:
+
+- C++17 core modules for geometry, section building, calculation, stress
+  points, mesh generation, and import/export scaffolding.
+- C-compatible API declared in `Source/api/section_property_tool.h`.
+- Parametric support for H Section, Box Section, Pipe Section, and Quayside
+  Crane Girder.
+- Canvas plate-centerline support for thin-walled section input.
+- Stress point generation and global/principal coordinate transforms.
+- Lightweight triangular mesh generation for visualization and integration
+  scaffolding.
+- Example programs for parametric use, Canvas use, and DLL-style batch use.
+- Regression, unit, and integration tests.
+- User manual files in Markdown and DOCX form.
+- Source requirements PDF/XLS copied into `Documents/source_requirements/`.
+
+## Verified on macOS
+
+The following commands were run from the project root:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build --output-on-failure
+./build/Library/bin/example1_parametric
+./build/Library/bin/example2_canvas
+./build/Library/bin/example3_dll_batch
+```
+
+Result:
+
+- CMake configure/build passed on macOS with AppleClang.
+- Core static library built successfully as `libSectionPropertyCore.a`.
+- C API shared library built successfully as `libSectionPropertyTool.dylib`.
+- Tests passed with CTest: `1/1 tests passed`.
+- The three example programs executed successfully.
+
+Generated artifacts confirmed in `build/Library/bin` and `build/Library/lib`:
+
+- `libSectionPropertyTool.dylib`
+- `libSectionPropertyCore.a`
+- `SectionPropertyTests`
+- `example1_parametric`
+- `example2_canvas`
+- `example3_dll_batch`
+
+## Not yet verified
+
+- Qt5 Widgets was not found on this macOS setup, so the Qt GUI target was not
+  built or verified.
+- Windows DLL packaging is not yet verified.
+- Windows import library, exported symbols, and Windows 10/11 usage examples are
+  not yet verified.
+- Qt 5.15.2 GUI target still needs verification with a proper Qt/CMake setup.
+- FEM export formats still need acceptance testing against ANSYS / ABAQUS /
+  Midas Civil expectations.
+- Numerical validation still needs a formal expected-vs-actual report using
+  `Test Data.xls` and/or analytical/commercial-software references.
+- Crane girder behavior requires further validation beyond the supplied XLS case
+  because the PDF diagram is not fully dimensioned.
+
+## Build instructions
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+Run examples:
+
+```bash
+./build/Library/bin/example1_parametric
+./build/Library/bin/example2_canvas
+./build/Library/bin/example3_dll_batch
+```
+
+Qt is optional at configure time. If Qt5 Widgets is found, CMake also builds the
+`SectionPropertyGui` target. Without Qt5 Widgets, the core library, C API shared
+library, examples, and tests still build.
+
+## Remaining tasks before completion
+
+1. Verify Windows build with CMake/MSVC.
+2. Produce and verify `.dll`, `.lib`, exported symbols, and Windows usage
+   examples.
+3. Install/configure Qt 5.15.2 and verify the GUI target.
+4. Produce expected-vs-actual numerical validation tables.
+5. Validate FEM export card formats.
+6. Validate crane girder calculations with more than the supplied reference
+   case.
+7. Review the user manual for completeness against the requirements.
+
