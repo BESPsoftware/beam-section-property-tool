@@ -28,7 +28,10 @@ Implemented in this branch:
 
 ## Verified on macOS
 
-The following commands were run from the project root:
+The following non-Qt and Qt-enabled verification builds have been run from the
+project root on macOS with AppleClang.
+
+Core/API verification:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -39,15 +42,27 @@ ctest --test-dir build --output-on-failure
 ./build/Library/bin/example3_dll_batch
 ```
 
+Qt-enabled verification using Homebrew `qt@5`:
+
+```bash
+cmake -S . -B build-qt -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+cmake --build build-qt
+ctest --test-dir build-qt --output-on-failure
+./build-qt/Library/bin/example1_parametric
+./build-qt/Library/bin/example2_canvas
+./build-qt/Library/bin/example3_dll_batch
+```
+
 Result:
 
 - CMake configure/build passed on macOS with AppleClang.
 - Core static library built successfully as `libSectionPropertyCore.a`.
 - C API shared library built successfully as `libSectionPropertyTool.dylib`.
+- `SectionPropertyGui` built successfully in the Qt-enabled `build-qt` build.
 - Tests passed with CTest: `1/1 tests passed`.
-- The three example programs executed successfully.
+- The three example programs executed successfully from `build-qt/Library/bin`.
 
-Generated artifacts confirmed in `build/Library/bin` and `build/Library/lib`:
+Generated artifacts confirmed in the CMake build outputs:
 
 - `libSectionPropertyTool.dylib`
 - `libSectionPropertyCore.a`
@@ -55,15 +70,15 @@ Generated artifacts confirmed in `build/Library/bin` and `build/Library/lib`:
 - `example1_parametric`
 - `example2_canvas`
 - `example3_dll_batch`
+- `SectionPropertyGui` in the Qt-enabled build.
 
 ## Not yet verified
 
-- Qt5 Widgets was not found on this macOS setup, so the Qt GUI target was not
-  built or verified.
 - Windows DLL packaging is not yet verified.
 - Windows import library, exported symbols, and Windows 10/11 usage examples are
   not yet verified.
-- Qt 5.15.2 GUI target still needs verification with a proper Qt/CMake setup.
+- Windows Qt 5.15.2 GUI deployment still needs verification on the target
+  Windows environment.
 - FEM export formats still need acceptance testing against ANSYS / ABAQUS /
   Midas Civil expectations.
 - Numerical validation still needs a formal expected-vs-actual report using
@@ -73,18 +88,28 @@ Generated artifacts confirmed in `build/Library/bin` and `build/Library/lib`:
 
 ## Build instructions
 
+Core/API build:
+
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Run examples:
+Qt-enabled macOS build using Homebrew `qt@5`:
 
 ```bash
-./build/Library/bin/example1_parametric
-./build/Library/bin/example2_canvas
-./build/Library/bin/example3_dll_batch
+cmake -S . -B build-qt -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+cmake --build build-qt
+ctest --test-dir build-qt --output-on-failure
+```
+
+Run examples from the Qt-enabled build:
+
+```bash
+./build-qt/Library/bin/example1_parametric
+./build-qt/Library/bin/example2_canvas
+./build-qt/Library/bin/example3_dll_batch
 ```
 
 Qt is optional at configure time. If Qt5 Widgets is found, CMake also builds the
@@ -96,10 +121,9 @@ library, examples, and tests still build.
 1. Verify Windows build with CMake/MSVC.
 2. Produce and verify `.dll`, `.lib`, exported symbols, and Windows usage
    examples.
-3. Install/configure Qt 5.15.2 and verify the GUI target.
+3. Verify Qt 5.15.2 GUI build and deployment on Windows.
 4. Produce expected-vs-actual numerical validation tables.
 5. Validate FEM export card formats.
 6. Validate crane girder calculations with more than the supplied reference
    case.
 7. Review the user manual for completeness against the requirements.
-

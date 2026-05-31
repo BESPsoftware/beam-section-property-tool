@@ -1,5 +1,6 @@
 # Build outputs
 build/
+build-*/
 out/
 cmake-build-*/
 CMakeFiles/
@@ -28,4 +29,3 @@ install_manifest.txt
 
 # Generated local test exports
 spt_test_export.csv
-

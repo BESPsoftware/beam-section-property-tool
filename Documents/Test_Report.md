@@ -18,7 +18,8 @@ Crane Runway sections.
 
 ## Verification Run
 
-Executed in the development environment with CMake and AppleClang:
+Executed in the development environment with CMake and AppleClang for the
+core/API build:
 
 ```text
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -32,12 +33,36 @@ ctest --test-dir build --output-on-failure
 Result:
 
 - CMake configure completed successfully with AppleClang.
-- Qt5 Widgets was not found, so the optional Qt GUI target was not built or
-  verified in this run.
 - Core static library built successfully as `libSectionPropertyCore.a`.
 - C API shared library built successfully as `libSectionPropertyTool.dylib`.
 - Examples built and executed successfully.
 - CTest passed: `1/1 tests passed`.
+
+## Qt GUI and Examples Verification
+
+The Qt-enabled macOS build was verified using Homebrew `qt@5`:
+
+```text
+cmake -S . -B build-qt -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+cmake --build build-qt
+ctest --test-dir build-qt --output-on-failure
+./build-qt/Library/bin/example1_parametric
+./build-qt/Library/bin/example2_canvas
+./build-qt/Library/bin/example3_dll_batch
+```
+
+Observed results:
+
+- CMake configure completed successfully with AppleClang and Homebrew `qt@5`.
+- `SectionPropertyGui` was built successfully.
+- Core static library built successfully as `libSectionPropertyCore.a`.
+- C-compatible API shared library built successfully as
+  `libSectionPropertyTool.dylib`.
+- `SectionPropertyTests` passed under CTest: `1/1 tests passed`.
+- `example1_parametric`, `example2_canvas`, and `example3_dll_batch` executed
+  successfully from `build-qt/Library/bin`.
+- Windows DLL packaging, Windows `.lib` generation, exported-symbol checks, and
+  Windows Qt deployment remain unverified.
 
 ## Tolerances
 
