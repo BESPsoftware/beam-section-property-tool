@@ -2,6 +2,8 @@
 build/
 build-*/
 build_*/
+*_build/
+bsp_build/
 out/
 cmake-build-*/
 CMakeFiles/

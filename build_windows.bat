@@ -29,7 +29,7 @@ echo Configuring project in %BUILD_DIR%
 cmake -S . -B "%BUILD_DIR%" -G "Visual Studio 17 2022" -A x64
 if errorlevel 1 (
     echo Configure failed
-    subst %BUILD_DRIVE% /d >nul 2>&1
+    subst !BUILD_DRIVE! /d >nul 2>&1
     exit /b 1
 )
 
@@ -37,7 +37,7 @@ echo Building Release configuration
 cmake --build "%BUILD_DIR%" --config Release
 if errorlevel 1 (
     echo Build failed
-    subst %BUILD_DRIVE% /d >nul 2>&1
+    subst !BUILD_DRIVE! /d >nul 2>&1
     exit /b 1
 )
 
@@ -45,10 +45,10 @@ echo Running tests
 ctest --test-dir "%BUILD_DIR%" -C Release --output-on-failure
 if errorlevel 1 (
     echo Tests failed
-    subst %BUILD_DRIVE% /d >nul 2>&1
+    subst !BUILD_DRIVE! /d >nul 2>&1
     exit /b 1
 )
 
 echo Windows build completed successfully.
-subst %BUILD_DRIVE% /d >nul 2>&1
+subst !BUILD_DRIVE! /d >nul 2>&1
 endlocal
