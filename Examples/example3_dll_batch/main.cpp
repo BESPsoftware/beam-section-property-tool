@@ -1,6 +1,28 @@
 #include "section_property_tool.h"
 
 #include <iostream>
+#include <limits>
+#if defined(_WIN32)
+#  include <io.h>
+#else
+#  include <unistd.h>
+#endif
+
+static bool shouldPauseConsole() {
+#if defined(_WIN32)
+    return _isatty(_fileno(stdin)) && _isatty(_fileno(stdout));
+#else
+    return isatty(fileno(stdin)) && isatty(fileno(stdout));
+#endif
+}
+
+static void pauseConsole() {
+    if (!shouldPauseConsole()) {
+        return;
+    }
+    std::cout << "Press Enter to exit..." << std::flush;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
 
 namespace {
 
@@ -27,6 +49,7 @@ int main() {
     const SptParameter pipe[] = {{"Do", 1300.0}, {"t", 14.0}};
     runCase("H Section", SPT_H_SECTION, h, 4);
     runCase("Pipe Section", SPT_PIPE_SECTION, pipe, 2);
+    pauseConsole();
     return 0;
 }
 

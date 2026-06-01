@@ -74,13 +74,28 @@ Generated artifacts confirmed in the CMake build outputs:
 
 ## Not yet verified
 
-- Windows DLL packaging is not yet verified.
-- Windows import library, exported symbols, and Windows 10/11 usage examples are
-  not yet verified.
+- Windows core/API build is verified with CMake/MSVC on Windows 10/11.
+- `SectionPropertyTool.dll` and `SectionPropertyTool.lib` generation is verified,
+  and exported symbols are confirmed.
 - Windows Qt 5.15.2 GUI deployment still needs verification on the target
   Windows environment.
 - FEM export formats still need acceptance testing against ANSYS / ABAQUS /
   Midas Civil expectations.
+
+## Windows Build
+
+On Windows with Visual Studio 2022, use the following build flow:
+
+```bat
+cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64
+cmake --build build-msvc --config Release
+ctest --test-dir build-msvc -C Release --output-on-failure
+```
+
+If your source path is long, use a short build directory such as
+`C:\bsp_build` to avoid MSVC file-tracking path length issues.
+
+A helper script `build_windows.bat` is included for this workflow.
 - Numerical validation still needs a formal expected-vs-actual report using
   `Test Data.xls` and/or analytical/commercial-software references.
 - Crane girder behavior requires further validation beyond the supplied XLS case

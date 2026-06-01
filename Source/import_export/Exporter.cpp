@@ -5,8 +5,38 @@
 #include <fstream>
 #include <iomanip>
 
+#if defined(_WIN32)
+#  include <windows.h>
+#endif
+
 namespace spt {
 namespace {
+
+#if defined(_WIN32)
+std::wstring utf8ToWide(const std::string& utf8) {
+    if (utf8.empty()) {
+        return std::wstring();
+    }
+    int count = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+    if (count <= 0) {
+        return std::wstring();
+    }
+    std::wstring wide(count, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, wide.data(), count);
+    if (!wide.empty() && wide.back() == L'\0') {
+        wide.pop_back();
+    }
+    return wide;
+}
+#endif
+
+std::ofstream openOutputFile(const std::string& path) {
+#if defined(_WIN32)
+    return std::ofstream(utf8ToWide(path));
+#else
+    return std::ofstream(path);
+#endif
+}
 
 void setFileError(ErrorInfo* error, const std::string& path) {
     if (error) {
@@ -42,7 +72,7 @@ bool Exporter::exportResult(const CalculationResult& result, const std::string& 
 }
 
 bool Exporter::saveProject(const SectionModel& model, const std::string& path, ErrorInfo* error) {
-    std::ofstream os(path);
+    std::ofstream os = openOutputFile(path);
     if (!os) {
         setFileError(error, path);
         return false;
@@ -70,7 +100,7 @@ bool Exporter::saveProject(const SectionModel& model, const std::string& path, E
 }
 
 bool Exporter::exportCsv(const CalculationResult& result, const std::string& path, ErrorInfo* error) {
-    std::ofstream os(path);
+    std::ofstream os = openOutputFile(path);
     if (!os) {
         setFileError(error, path);
         return false;
@@ -100,7 +130,7 @@ bool Exporter::exportCsv(const CalculationResult& result, const std::string& pat
 }
 
 bool Exporter::exportJson(const CalculationResult& result, const std::string& path, ErrorInfo* error) {
-    std::ofstream os(path);
+    std::ofstream os = openOutputFile(path);
     if (!os) {
         setFileError(error, path);
         return false;

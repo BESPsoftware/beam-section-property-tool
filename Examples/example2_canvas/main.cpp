@@ -1,6 +1,28 @@
 #include "section_property_tool.h"
 
 #include <iostream>
+#include <limits>
+#if defined(_WIN32)
+#  include <io.h>
+#else
+#  include <unistd.h>
+#endif
+
+static bool shouldPauseConsole() {
+#if defined(_WIN32)
+    return _isatty(_fileno(stdin)) && _isatty(_fileno(stdout));
+#else
+    return isatty(fileno(stdin)) && isatty(fileno(stdout));
+#endif
+}
+
+static void pauseConsole() {
+    if (!shouldPauseConsole()) {
+        return;
+    }
+    std::cout << "Press Enter to exit..." << std::flush;
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
 
 int main() {
     const SptPlateSegment lines[] = {
@@ -21,6 +43,7 @@ int main() {
     std::cout << "Canvas centroid: (" << props.cy << ", " << props.cz << ") mm\n";
     spt_destroy_result(result);
     spt_destroy_section(section);
+    pauseConsole();
     return 0;
 }
 
