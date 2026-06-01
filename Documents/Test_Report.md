@@ -61,8 +61,9 @@ Observed results:
 - `SectionPropertyTests` passed under CTest: `1/1 tests passed`.
 - `example1_parametric`, `example2_canvas`, and `example3_dll_batch` executed
   successfully from `build-qt/Library/bin`.
-- Windows DLL packaging, Windows `.lib` generation, exported-symbol checks, and
-  Windows Qt deployment remain unverified.
+- Windows core/API build and `SectionPropertyTool.dll` export verification are
+  now confirmed on Windows using MSVC and a short build directory.
+- Windows Qt deployment remains unverified.
 
 ## Tolerances
 

@@ -1,6 +1,7 @@
 #include "section_property_tool.h"
 
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 
 namespace {
@@ -53,6 +54,10 @@ bool runApiTests() {
 
     ok &= expectOk(spt_export_results(result, "spt_test_export.csv", SPT_EXPORT_CSV), "export");
     std::remove("spt_test_export.csv");
+
+    const std::filesystem::path utf8ExportPath = u8"spt_test_export_测试.csv";
+    ok &= expectOk(spt_export_results(result, utf8ExportPath.u8string().c_str(), SPT_EXPORT_CSV), "export utf8");
+    std::filesystem::remove(utf8ExportPath);
 
     spt_destroy_mesh(mesh);
     spt_destroy_result(result);
