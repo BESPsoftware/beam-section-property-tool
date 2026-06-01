@@ -77,8 +77,9 @@ Generated artifacts confirmed in the CMake build outputs:
 - Windows core/API build is verified with CMake/MSVC on Windows 10/11.
 - `SectionPropertyTool.dll` and `SectionPropertyTool.lib` generation is verified,
   and exported symbols are confirmed.
-- Windows Qt 5.15.2 GUI deployment still needs verification on the target
-  Windows environment.
+- Windows Qt 5.15.2 GUI build and deployment steps are documented in
+  `Documents/Windows_Qt_Verification.md`. Runtime smoke test on a Windows
+  machine still needs to be executed and signed off.
 - FEM export formats still need acceptance testing against ANSYS / ABAQUS /
   Midas Civil expectations.
 
@@ -96,8 +97,9 @@ If your source path is long, use a short build directory such as
 `C:\bsp_build` to avoid MSVC file-tracking path length issues.
 
 A helper script `build_windows.bat` is included for this workflow.
-- Numerical validation still needs a formal expected-vs-actual report using
-  `Test Data.xls` and/or analytical/commercial-software references.
+- Numerical validation expected-vs-actual report is in
+  `Documents/Numerical_Validation_Report.md`. All 41 checks pass against
+  the `Test Data.xls` reference values.
 - Crane girder behavior requires further validation beyond the supplied XLS case
   because the PDF diagram is not fully dimensioned.
 
