@@ -14,6 +14,9 @@ public:
 private:
     static bool exportCsv(const CalculationResult& result, const std::string& path, ErrorInfo* error);
     static bool exportJson(const CalculationResult& result, const std::string& path, ErrorInfo* error);
+    static bool exportAnsys(const CalculationResult& result, const std::string& path, ErrorInfo* error);
+    static bool exportAbaqus(const CalculationResult& result, const std::string& path, ErrorInfo* error);
+    static bool exportMidasCivil(const CalculationResult& result, const std::string& path, ErrorInfo* error);
 };
 
 }  // namespace spt

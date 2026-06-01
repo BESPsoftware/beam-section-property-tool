@@ -279,6 +279,8 @@ BuildResult SectionBuilder::buildCrane(const SectionParameters& parameters) {
             result.model.overrideStressPoints.push_back(sp);
             ++id;
         }
+    } else {
+        result.model.warnings.push_back("Crane girder calculation uses the approximate plate graph because the source diagram is not fully dimensioned for this parameter set.");
     }
 
     return result;

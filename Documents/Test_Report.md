@@ -13,8 +13,10 @@ Crane Runway sections.
 - Pipe: area, Jz, Jy, Jx, Az, Ay, centroid, four stress points.
 - Crane Runway: area, Jz, Jy, Jyz, theta, Jzo, Jyo, Jx, Az0, Ay0, centroid,
   four principal stress points.
+- Non-reference crane girder: approximate plate-graph properties, stress-point
+  generation, and warning diagnostic coverage.
 - DLL API smoke test: create section, calculate, read properties, read stress
-  points, create mesh, export CSV.
+  points, create mesh, export CSV, ANSYS, ABAQUS, and Midas Civil cards.
 
 ## Verification Run
 
@@ -75,5 +77,7 @@ Observed results:
 
 - GUI automation is manual unless Qt Test is added to the CI environment.
 - Crane girder non-reference parameter sets use an approximate plate graph until
-  the client confirms full construction rules.
-- FEM card exports are placeholders in v1.
+  the client confirms full construction rules; these cases emit a warning.
+- FEM card exports write general section/property values for ANSYS, ABAQUS, and
+  Midas Civil review. Solver-specific acceptance should still be confirmed in
+  the target FEM applications.

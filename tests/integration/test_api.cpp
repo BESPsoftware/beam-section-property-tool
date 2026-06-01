@@ -2,7 +2,9 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <string>
 
 namespace {
 
@@ -11,6 +13,16 @@ bool expectOk(int code, const char* context) {
         return true;
     }
     std::cerr << context << ": " << spt_get_last_error()->message << "\n";
+    return false;
+}
+
+bool fileContains(const std::filesystem::path& path, const std::string& needle) {
+    std::ifstream input(path);
+    const std::string text((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+    if (text.find(needle) != std::string::npos) {
+        return true;
+    }
+    std::cerr << path.string() << " does not contain " << needle << "\n";
     return false;
 }
 
@@ -54,6 +66,21 @@ bool runApiTests() {
 
     ok &= expectOk(spt_export_results(result, "spt_test_export.csv", SPT_EXPORT_CSV), "export");
     std::remove("spt_test_export.csv");
+
+    ok &= expectOk(spt_export_results(result, "spt_test_export.ansys", SPT_EXPORT_ANSYS), "export ansys");
+    ok &= fileContains("spt_test_export.ansys", "SECTYPE,1,BEAM,ASEC,SPT_SECTION");
+    ok &= fileContains("spt_test_export.ansys", "SECDATA,6520");
+    std::filesystem::remove("spt_test_export.ansys");
+
+    ok &= expectOk(spt_export_results(result, "spt_test_export.inp", SPT_EXPORT_ABAQUS), "export abaqus");
+    ok &= fileContains("spt_test_export.inp", "*BEAM GENERAL SECTION, SECTION=GENERAL");
+    ok &= fileContains("spt_test_export.inp", "6520");
+    std::filesystem::remove("spt_test_export.inp");
+
+    ok &= expectOk(spt_export_results(result, "spt_test_export.mct", SPT_EXPORT_MIDAS_CIVIL), "export midas");
+    ok &= fileContains("spt_test_export.mct", "*SECTION-PROPERTY");
+    ok &= fileContains("spt_test_export.mct", "AREA=6520");
+    std::filesystem::remove("spt_test_export.mct");
 
     const std::filesystem::path utf8ExportPath = u8"spt_test_export_测试.csv";
     ok &= expectOk(spt_export_results(result, utf8ExportPath.u8string().c_str(), SPT_EXPORT_CSV), "export utf8");

@@ -32,7 +32,7 @@ std::wstring utf8ToWide(const std::string& utf8) {
 
 std::ofstream openOutputFile(const std::string& path) {
 #if defined(_WIN32)
-    return std::ofstream(utf8ToWide(path));
+    return std::ofstream(utf8ToWide(path).c_str());
 #else
     return std::ofstream(path);
 #endif
@@ -61,12 +61,11 @@ bool Exporter::exportResult(const CalculationResult& result, const std::string& 
         case ExportFormat::Json:
             return exportJson(result, path, error);
         case ExportFormat::Ansys:
+            return exportAnsys(result, path, error);
         case ExportFormat::Abaqus:
+            return exportAbaqus(result, path, error);
         case ExportFormat::MidasCivil:
-            if (error) {
-                *error = {5002, ErrorSeverity::Warning, path, "FEM card export is a documented v1 placeholder.", "Use JSON or CSV in this release."};
-            }
-            return false;
+            return exportMidasCivil(result, path, error);
     }
     return false;
 }
@@ -162,6 +161,66 @@ bool Exporter::exportJson(const CalculationResult& result, const std::string& pa
     os << "  \"meshSummary\": {\"nodes\": " << result.meshSummary.nodes.size()
        << ", \"triangles\": " << result.meshSummary.triangles.size() << "}\n";
     os << "}\n";
+    return true;
+}
+
+bool Exporter::exportAnsys(const CalculationResult& result, const std::string& path, ErrorInfo* error) {
+    std::ofstream os = openOutputFile(path);
+    if (!os) {
+        setFileError(error, path);
+        return false;
+    }
+    const auto& p = result.properties;
+    os << "! SectionPropertyTool ANSYS beam-section constants\n";
+    os << "! Units: mm, mm2, mm4, rad\n";
+    os << std::setprecision(15);
+    os << "SECTYPE,1,BEAM,ASEC,SPT_SECTION\n";
+    os << "SECDATA," << p.area << "," << p.Jz << "," << p.Jy << "," << p.Jx << "," << p.Az << "," << p.Ay << "\n";
+    os << "! CENTROID," << p.cy << "," << p.cz << "\n";
+    os << "! PRODUCT_INERTIA_JYZ," << p.Jyz << "\n";
+    os << "! PRINCIPAL," << p.theta << "," << p.Jzo << "," << p.Jyo << "\n";
+    return true;
+}
+
+bool Exporter::exportAbaqus(const CalculationResult& result, const std::string& path, ErrorInfo* error) {
+    std::ofstream os = openOutputFile(path);
+    if (!os) {
+        setFileError(error, path);
+        return false;
+    }
+    const auto& p = result.properties;
+    os << "** SectionPropertyTool ABAQUS general beam section\n";
+    os << "** Units: mm, mm2, mm4, rad\n";
+    os << std::setprecision(15);
+    os << "*BEAM GENERAL SECTION, SECTION=GENERAL\n";
+    os << p.area << ", " << p.Jy << ", " << p.Jz << ", " << p.Jyz << ", " << p.Jx << "\n";
+    os << "** CENTROID, " << p.cy << ", " << p.cz << "\n";
+    os << "** SHEAR_AREA, " << p.Ay << ", " << p.Az << "\n";
+    os << "** PRINCIPAL, " << p.theta << ", " << p.Jyo << ", " << p.Jzo << "\n";
+    return true;
+}
+
+bool Exporter::exportMidasCivil(const CalculationResult& result, const std::string& path, ErrorInfo* error) {
+    std::ofstream os = openOutputFile(path);
+    if (!os) {
+        setFileError(error, path);
+        return false;
+    }
+    const auto& p = result.properties;
+    os << "; SectionPropertyTool Midas Civil general section values\n";
+    os << "; Units: mm, mm2, mm4, rad\n";
+    os << std::setprecision(15);
+    os << "*SECTION-PROPERTY\n";
+    os << "AREA=" << p.area << "\n";
+    os << "IYY=" << p.Jy << "\n";
+    os << "IZZ=" << p.Jz << "\n";
+    os << "IYZ=" << p.Jyz << "\n";
+    os << "J=" << p.Jx << "\n";
+    os << "ASY=" << p.Ay << "\n";
+    os << "ASZ=" << p.Az << "\n";
+    os << "CY=" << p.cy << "\n";
+    os << "CZ=" << p.cz << "\n";
+    os << "THETA=" << p.theta << "\n";
     return true;
 }
 

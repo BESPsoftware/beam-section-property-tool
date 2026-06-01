@@ -80,8 +80,9 @@ Generated artifacts confirmed in the CMake build outputs:
 - Windows Qt 5.15.2 GUI build and deployment steps are documented in
   `Documents/Windows_Qt_Verification.md`. Runtime smoke test on a Windows
   machine still needs to be executed and signed off.
-- FEM export formats still need acceptance testing against ANSYS / ABAQUS /
-  Midas Civil expectations.
+- FEM export card writers for ANSYS, ABAQUS, and Midas Civil are implemented
+  and covered by API integration tests. They emit general section/property
+  values for downstream solver review.
 
 ## Windows Build
 
@@ -100,8 +101,9 @@ A helper script `build_windows.bat` is included for this workflow.
 - Numerical validation expected-vs-actual report is in
   `Documents/Numerical_Validation_Report.md`. All 41 checks pass against
   the `Test Data.xls` reference values.
-- Crane girder behavior requires further validation beyond the supplied XLS case
-  because the PDF diagram is not fully dimensioned.
+- Crane girder behavior is validated for the supplied XLS acceptance case and
+  additional non-reference approximate plate-graph cases. The source PDF is not
+  fully dimensioned, so non-reference crane cases intentionally emit a warning.
 
 ## Build instructions
 
@@ -140,7 +142,9 @@ library, examples, and tests still build.
    examples.
 3. Verify Qt 5.15.2 GUI build and deployment on Windows.
 4. Produce expected-vs-actual numerical validation tables.
-5. Validate FEM export card formats.
+5. Validate FEM export card formats. **Completed:** ANSYS, ABAQUS, and Midas
+   Civil writers are implemented and covered by API integration tests.
 6. Validate crane girder calculations with more than the supplied reference
-   case.
+   case. **Completed:** reference XLS values and non-reference approximate
+   plate-graph cases are covered by regression tests.
 7. Review the user manual for completeness against the requirements.

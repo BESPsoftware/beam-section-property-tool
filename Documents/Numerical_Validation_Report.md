@@ -151,6 +151,7 @@ regression test suite. Test runner: `SectionPropertyTests` via
   not present in `Test Data.xls` and are not validated here.
 - Crane girder numerical values are calibrated to the single XLS
   reference case; other parameter combinations produce approximate
-  results with a diagnostic warning.
-- FEM export card formats (ANSYS, ABAQUS, Midas Civil) are not yet
-  implemented and are not covered by this report.
+  results with a diagnostic warning and are covered by regression tests
+  for deterministic plate-graph behavior.
+- FEM export card formats (ANSYS, ABAQUS, Midas Civil) write general
+  section/property values and are covered by API integration tests.
