@@ -42,29 +42,41 @@ Result:
 
 ## Qt GUI and Examples Verification
 
-The Qt-enabled macOS build was verified using Homebrew `qt@5`:
+The Qt-enabled macOS build was verified with explicit Qt major-version
+selection. Qt 5 was verified using Homebrew `qt@5`:
 
 ```text
-cmake -S . -B build-qt -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
-cmake --build build-qt
-ctest --test-dir build-qt --output-on-failure
-./build-qt/Library/bin/example1_parametric
-./build-qt/Library/bin/example2_canvas
-./build-qt/Library/bin/example3_dll_batch
+cmake -S . -B build-qt5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" -DSPT_QT_VERSION=5
+cmake --build build-qt5
+ctest --test-dir build-qt5 --output-on-failure
+./build-qt5/Library/bin/example1_parametric
+./build-qt5/Library/bin/example2_canvas
+./build-qt5/Library/bin/example3_dll_batch
+```
+
+Qt 6 was verified using Homebrew `qt`:
+
+```text
+cmake -S . -B build-qt6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" -DSPT_QT_VERSION=6
+cmake --build build-qt6
+ctest --test-dir build-qt6 --output-on-failure
 ```
 
 Observed results:
 
-- CMake configure completed successfully with AppleClang and Homebrew `qt@5`.
-- `SectionPropertyGui` was built successfully.
+- CMake configure completed successfully with AppleClang and Homebrew `qt@5`
+  when forced with `SPT_QT_VERSION=5`.
+- CMake configure completed successfully with AppleClang and Homebrew `qt`
+  when forced with `SPT_QT_VERSION=6`.
+- `SectionPropertyGui` was built successfully in both Qt builds.
 - Core static library built successfully as `libSectionPropertyCore.a`.
 - C-compatible API shared library built successfully as
   `libSectionPropertyTool.dylib`.
 - `SectionPropertyTests` passed under CTest: `1/1 tests passed`.
 - `example1_parametric`, `example2_canvas`, and `example3_dll_batch` executed
-  successfully from `build-qt/Library/bin`.
-- Windows core/API build and `SectionPropertyTool.dll` export verification are
-  now confirmed on Windows using MSVC and a short build directory.
+  successfully from `build-qt5/Library/bin`.
+- Prior Windows core/API build and `SectionPropertyTool.dll` export
+  verification are documented for MSVC and a short build directory.
 - Windows Qt deployment remains unverified.
 
 ## Tolerances

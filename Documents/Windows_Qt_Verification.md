@@ -28,7 +28,8 @@ set QT5_DIR=C:\Qt\5.15.2\msvc2019_64\lib\cmake\Qt5
 
 cmake -S . -B build-qt-msvc ^
       -G "Visual Studio 17 2022" -A x64 ^
-      -DCMAKE_PREFIX_PATH=%QT5_DIR%
+      -DCMAKE_PREFIX_PATH=%QT5_DIR% ^
+      -DSPT_QT_VERSION=5
 
 cmake --build build-qt-msvc --config Release
 ctest --test-dir build-qt-msvc -C Release --output-on-failure
@@ -54,19 +55,21 @@ After a successful build the following files must exist:
 | `example3_dll_batch.exe` | `build-qt-msvc\Library\bin\Release\` | |
 | `SectionPropertyGui.exe` | `build-qt-msvc\Library\bin\Release\` | Qt GUI (only if Qt5 found) |
 
-Confirm Qt5 was detected during configure by checking for:
+Confirm Qt5 was selected by checking `build-qt-msvc\CMakeCache.txt` for:
 
 ```
--- Found Qt5 Widgets: ...
+SPT_QT_VERSION:STRING=5
+Qt5_DIR:PATH=...
 ```
 
-in the CMake output. If the line reads:
+If CMake reports:
 
 ```
--- Qt5 Widgets not found. Core library, DLL, examples, and tests will still build.
+-- Qt Widgets not found. Core library, DLL, examples, and tests will still build.
 ```
 
-then `CMAKE_PREFIX_PATH` was not set correctly.
+then `CMAKE_PREFIX_PATH` was not set correctly or the Qt installation is not
+compatible with the selected generator.
 
 ---
 

@@ -26,6 +26,6 @@ pipeline as parametric sections.
 
 ## Export
 
-Use the DLL API to export CSV or JSON results. FEM card formats are reserved for
-future ANSYS, ABAQUS, and Midas Civil writers.
-
+Use the DLL API to export CSV, JSON, ANSYS, ABAQUS, or Midas Civil results.
+The FEM writers emit general section/property values for solver review; confirm
+acceptance in the target FEM application before production use.
