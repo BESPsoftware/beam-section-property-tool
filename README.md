@@ -209,8 +209,8 @@ requires review in ANSYS, ABAQUS, and Midas Civil.
 - [x] Numerical validation report exists for workbook reference values.
 - [x] Optional Qt 5 and Qt 6 macOS builds verified.
 - [x] Windows core/API evidence is documented from prior merged work.
-- [ ] GitHub repository default branch switched to `main`.
-- [ ] Old `try-whole-implementation` branch deleted after default switch.
+- [x] GitHub repository default branch switched to `main`.
+- [x] Old `try-whole-implementation` branch deleted after default switch.
 - [ ] Windows Qt GUI runtime/deployment smoke test completed.
 - [ ] FEM solver acceptance completed in target applications.
 - [ ] Final user manual/DOCX package reviewed and signed off.
