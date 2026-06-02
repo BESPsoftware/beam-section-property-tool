@@ -31,6 +31,13 @@ spt::CalculationResult calculate(spt::SectionType type, std::map<std::string, do
     return spt::SectionCalculator::calculate(built.model);
 }
 
+spt::BuildResult build(spt::SectionType type, std::map<std::string, double> values) {
+    spt::SectionParameters parameters;
+    parameters.type = type;
+    parameters.values = std::move(values);
+    return spt::SectionBuilder::build(parameters);
+}
+
 bool checkCommon(const std::string& name, const spt::SectionProperties& p, double area, double jz, double jy, double jx, double az, double ay, double cy, double cz) {
     bool ok = true;
     ok &= nearValue(name + ".Area", p.area, area, scaledTolerance(area, 0.01));
@@ -99,6 +106,44 @@ bool runRegressionTests() {
         {447.790529767, 984.967100533},
         {-299.859362638, 1151.6273489}};
     ok &= checkStress("Crane", crane, craneStress);
+
+    auto scaledCraneBuild = build(spt::SectionType::QuaysideCraneGirder, {
+        {"A", 1532.0}, {"B", 1672.0}, {"G", 2180.0}, {"D", 2320.0}, {"e", 40.0},
+        {"f", 24.0}, {"H", 4000.0}, {"W", 1868.0}, {"M", 700.0}, {"N", 1036.0},
+        {"p", 40.0}, {"s", 24.0}, {"t", 20.0}, {"u", 20.0}, {"M1", 350.0},
+        {"k", 300.0}, {"k1", 24.0}, {"h", 276.0}, {"h1", 20.0}});
+    if (!scaledCraneBuild.ok()) {
+        std::cerr << "Scaled crane build failed\n";
+        return false;
+    }
+    const auto scaledCrane = spt::SectionCalculator::calculate(scaledCraneBuild.model);
+    ok &= nearValue("CraneScaled.Area", scaledCrane.properties.area, 1654500.75860751, scaledTolerance(1654500.75860751, 0.01));
+    ok &= nearValue("CraneScaled.Jz", scaledCrane.properties.Jz, 570344073018.856, scaledTolerance(570344073018.856, 1.0));
+    ok &= nearValue("CraneScaled.Jy", scaledCrane.properties.Jy, 2501914645822.7, scaledTolerance(2501914645822.7, 1.0));
+    ok &= nearValue("CraneScaled.Jyz", scaledCrane.properties.Jyz, -108933351564.659, scaledTolerance(-108933351564.659, 1.0));
+    ok &= nearValue("CraneScaled.Jx", scaledCrane.properties.Jx, 100747733.050713, scaledTolerance(100747733.050713, 1.0));
+    ok &= nearValue("CraneScaled.Az", scaledCrane.properties.Az, 1654500.75860751, scaledTolerance(1654500.75860751, 0.01));
+    ok &= nearValue("CraneScaled.Ay", scaledCrane.properties.Ay, 1654500.75860751, scaledTolerance(1654500.75860751, 0.01));
+    ok &= nearValue("CraneScaled.cy", scaledCrane.properties.cy, 1776.80229889757, scaledTolerance(1776.80229889757, 0.01));
+    ok &= nearValue("CraneScaled.cz", scaledCrane.properties.cz, 2006.56561610585, scaledTolerance(2006.56561610585, 0.01));
+    ok &= (scaledCrane.diagnostics.size() == 1);
+
+    auto nonReferenceCraneBuild = build(spt::SectionType::QuaysideCraneGirder, {
+        {"A", 800.0}, {"B", 860.0}, {"G", 1110.0}, {"D", 1180.0}, {"e", 22.0},
+        {"f", 14.0}, {"H", 2050.0}, {"W", 950.0}, {"M", 360.0}, {"N", 530.0},
+        {"p", 22.0}, {"s", 14.0}, {"t", 12.0}, {"u", 12.0}, {"M1", 180.0},
+        {"k", 160.0}, {"k1", 14.0}, {"h", 145.0}, {"h1", 12.0}});
+    if (!nonReferenceCraneBuild.ok()) {
+        std::cerr << "Non-reference crane build failed\n";
+        return false;
+    }
+    const auto nonReferenceCrane = spt::SectionCalculator::calculate(nonReferenceCraneBuild.model);
+    ok &= (nonReferenceCrane.properties.area > 0.0);
+    ok &= (nonReferenceCrane.properties.Jz > 0.0);
+    ok &= (nonReferenceCrane.properties.Jy > 0.0);
+    ok &= (nonReferenceCrane.properties.Jx > 0.0);
+    ok &= (nonReferenceCrane.stressPoints.size() == 4);
+    ok &= (nonReferenceCrane.diagnostics.size() == 1);
 
     return ok;
 }
