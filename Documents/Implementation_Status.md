@@ -4,56 +4,55 @@ Date: 2026-06-02
 
 Repository: `BESPsoftware/beam-section-property-tool`
 
-Documentation branch: `docs/final-documentation-polish`
+Current default branch: `main`
 
-Main branch commit used for this documentation pass:
-`99b9f16c1c0cf715638d831521772b868ff2d249`
+Current main commit observed locally:
+`729cf0cfc02368ee16b177258ceed6c5f80ca711`
+
+Documentation PR #4:
+
+- Status: merged
+- Merge commit: `68e6914fc5ffd3375186b52f185f5bc0bc6bd430`
+- URL: `https://github.com/BESPsoftware/beam-section-property-tool/pull/4`
 
 ## Branch Migration Status
 
 | Item | Status |
 |---|---|
-| Remote `main` branch | Created from latest `try-whole-implementation`. |
-| Local `main` branch | Tracks `origin/main`. |
-| GitHub default branch | Blocked: GitHub still reports `try-whole-implementation`. |
-| Old remote branch deletion | Intentionally not performed. |
+| GitHub default branch | `main` |
+| Remote `main` branch | Present |
+| Local `main` branch | Tracks `origin/main` |
+| `origin/HEAD` | Points to `origin/main` |
+| Old `origin/try-whole-implementation` branch | Not present after fetch/prune |
 
-`gh repo edit BESPsoftware/beam-section-property-tool --default-branch main`
-and a direct `gh api -X PATCH repos/BESPsoftware/beam-section-property-tool -f
-default_branch=main` both returned `HTTP 404`. `gh auth status` reported that
-the active token was invalid for account `Natizh`. Until an admin-capable token
-or GitHub UI action sets `main` as default, keep `origin/try-whole-implementation`
-in place.
+The repository has completed the main-branch migration. The previous default
+branch reference is no longer present in the remote branch list, so no old-branch
+deletion action remains in the blocker list.
 
-## Commands Run for Branch Inspection and Migration
+## Commands Run for Current Status
 
 ```text
-gh repo view BESPsoftware/beam-section-property-tool
-gh pr list --state all
-git status
+gh repo view BESPsoftware/beam-section-property-tool --json defaultBranchRef,nameWithOwner,url
+gh pr view 4 --json url,state,mergedAt,headRefName,baseRefName,mergeCommit
 git fetch origin --prune
 git branch -a
-git log --oneline --decorate -n 10
-gh repo view BESPsoftware/beam-section-property-tool --json defaultBranchRef,nameWithOwner,url
-git rev-parse origin/try-whole-implementation
-gh pr list --state open --base try-whole-implementation
-git checkout try-whole-implementation
-git pull origin try-whole-implementation
-git branch -m try-whole-implementation main
-git push origin main
-gh repo edit BESPsoftware/beam-section-property-tool --default-branch main
-gh api -X PATCH repos/BESPsoftware/beam-section-property-tool -f default_branch=main
-git branch --set-upstream-to=origin/main main
-git remote set-head origin -a
-git checkout main
-git pull origin main
-git checkout -b docs/final-documentation-polish
+git log --oneline --decorate -n 8
+git rev-parse main origin/main HEAD
+git merge-base HEAD origin/main
 ```
+
+Observed results:
+
+- GitHub reports default branch `main`.
+- PR #4 is merged.
+- `origin/main`, local `main`, and the current documentation branch are based on
+  commit `729cf0cfc02368ee16b177258ceed6c5f80ca711`.
+- `origin/try-whole-implementation` is no longer listed.
 
 ## Latest Local Verification
 
-The final documentation branch is verified with the no-GUI build path used by
-CI:
+The final documentation branch from PR #4 was verified with the no-GUI build
+path used by CI:
 
 ```text
 cmake -S . -B build-docs-check -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
@@ -65,12 +64,18 @@ ctest --test-dir build-docs-check --output-on-failure
 git diff --check
 ```
 
-Observed local result for this pass:
+Observed result for that verification:
 
 - CMake configure/build passed.
-- CTest reports `1/1 tests passed`.
+- CTest reported `1/1 tests passed`.
 - All three examples executed successfully.
 - `git diff --check` reported no whitespace errors.
+
+This status-only update changes documentation only. Its local verification is:
+
+```text
+git diff --check
+```
 
 ## CI Status
 
@@ -79,9 +84,10 @@ The GitHub Actions workflow `.github/workflows/cmake.yml` builds on
 executes the three examples. The workflow is configured for pull requests and
 pushes to `main`.
 
-Recent prior CI result after PR #3: macOS and Ubuntu jobs passed. The
-documentation PR should be checked again after push because the workflow trigger
-has been moved from `try-whole-implementation` to `main`.
+Recent CI results:
+
+- PR #4 GitHub Actions passed on macOS.
+- PR #4 GitHub Actions passed on Ubuntu.
 
 ## macOS Verification
 
@@ -123,9 +129,6 @@ Not reverified during this macOS documentation pass:
 
 ## Remaining Blockers
 
-- Set GitHub default branch to `main` with admin-capable credentials.
-- Delete `origin/try-whole-implementation` only after confirming `main` is the
-  GitHub default branch.
 - Execute the Windows Qt GUI runtime/deployment smoke test.
 - Complete ANSYS, ABAQUS, and Midas Civil solver-side acceptance review.
 - Confirm complete crane girder construction rules for non-reference parameter
