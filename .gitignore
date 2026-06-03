@@ -32,3 +32,6 @@ install_manifest.txt
 
 # Generated local test exports
 spt_test_export.csv
+spt_test_export.ansys
+spt_test_export.inp
+spt_test_export.mct

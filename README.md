@@ -1,40 +1,60 @@
 # Beam Section Property Tool
 
-This is a C++17 beam/section property calculation tool for parametric and
-canvas-defined cross-sections. It includes reusable core modules, a
-C-compatible API, example programs, tests, documentation, and an optional Qt
-Widgets GUI target for Qt 5.15.2 environments.
+[![CMake](https://github.com/BESPsoftware/beam-section-property-tool/actions/workflows/cmake.yml/badge.svg?branch=main)](https://github.com/BESPsoftware/beam-section-property-tool/actions/workflows/cmake.yml)
 
-The branch is a reviewable whole implementation, not a final acceptance-ready
-release.
+Beam Section Property Tool is a C++17 application and C API for modeling beam
+cross-sections, calculating section properties, generating stress output points,
+building lightweight visualization meshes, and exporting results for downstream
+finite element workflows.
 
-## Current implementation status
+The project branch for ongoing work and final documentation is `main`. A remote
+`main` branch exists. At the time of this documentation pass, changing the
+GitHub repository default branch from `try-whole-implementation` to `main`
+requires an admin-capable GitHub token; do not delete the old branch until that
+setting is changed and confirmed.
 
-Implemented in this branch:
+## Features
 
-- C++17 core modules for geometry, section building, calculation, stress
-  points, mesh generation, and import/export scaffolding.
-- C-compatible API declared in `Source/api/section_property_tool.h`.
-- Parametric support for H Section, Box Section, Pipe Section, and Quayside
-  Crane Girder.
-- Canvas plate-centerline support for thin-walled section input.
-- Stress point generation and global/principal coordinate transforms.
-- Lightweight triangular mesh generation for visualization and integration
-  scaffolding.
-- Example programs for parametric use, Canvas use, and DLL-style batch use.
-- Regression, unit, and integration tests.
-- User manual files in Markdown and DOCX form.
-- Source requirements PDF/XLS copied into `Documents/source_requirements/`.
+- C++17 calculation core with geometry, stress-point, mesh, and export modules.
+- C-compatible shared-library API in `Source/api/section_property_tool.h`.
+- Parametric H section, box section, pipe section, and quayside crane girder
+  section support.
+- Canvas input for user-defined thin-walled plate centerline sections.
+- CSV and JSON export.
+- ANSYS, ABAQUS, and Midas Civil general section/property card writers.
+- Optional Qt Widgets GUI target.
+- Unit, regression, and integration tests driven by CTest.
+- Example programs for parametric, Canvas, and batch API use.
 
-## Verified on macOS
+## Supported Section Types
 
-The following non-Qt and Qt-enabled verification builds have been run from the
-project root on macOS with AppleClang.
+| Section | API enum | Notes |
+|---|---|---|
+| H Section | `SPT_H_SECTION` | Parametric I/H-style section. |
+| Box Section | `SPT_BOX_SECTION` | Hollow box/girder-style section. |
+| Pipe Section | `SPT_PIPE_SECTION` | Circular hollow section. |
+| Quayside Crane Girder | `SPT_CRANE_GIRDER` | XLS reference case plus approximate non-reference plate graph. |
+| Canvas Thin-Walled | `SPT_CANVAS` | User-supplied plate centerlines and thicknesses. |
 
-Core/API verification:
+## Verification Status
+
+| Area | Status |
+|---|---|
+| macOS core/API build | Verified locally with AppleClang. |
+| macOS Qt 5 build | Verified locally with Homebrew `qt@5` and `SPT_QT_VERSION=5`. |
+| macOS Qt 6 build | Verified locally with Homebrew `qt` and `SPT_QT_VERSION=6`. |
+| Ubuntu CI | Verified by GitHub Actions no-GUI CMake workflow. |
+| macOS CI | Verified by GitHub Actions no-GUI CMake workflow. |
+| Windows core/API | Prior merged evidence documents MSVC build, DLL/import library, and exported symbols. |
+| Windows Qt runtime/deployment | Requires real Windows smoke test and deployment sign-off. |
+| FEM solver acceptance | Writers exist, but ANSYS / ABAQUS / Midas Civil solver-side acceptance remains pending. |
+
+## Quick Start
+
+Configure, build, test, and run the examples without Qt:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
 cmake --build build
 ctest --test-dir build --output-on-failure
 ./build/Library/bin/example1_parametric
@@ -42,103 +62,155 @@ ctest --test-dir build --output-on-failure
 ./build/Library/bin/example3_dll_batch
 ```
 
-Qt-enabled verification using Homebrew `qt@5`:
+Typical artifacts:
 
-```bash
-cmake -S . -B build-qt -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
-cmake --build build-qt
-ctest --test-dir build-qt --output-on-failure
-./build-qt/Library/bin/example1_parametric
-./build-qt/Library/bin/example2_canvas
-./build-qt/Library/bin/example3_dll_batch
-```
+- `build/Library/lib/libSectionPropertyCore.a`
+- `build/Library/bin/libSectionPropertyTool.dylib` on macOS/Linux, or
+  `SectionPropertyTool.dll` plus import library on Windows
+- `build/Library/bin/SectionPropertyTests`
+- `build/Library/bin/example1_parametric`
+- `build/Library/bin/example2_canvas`
+- `build/Library/bin/example3_dll_batch`
 
-Result:
-
-- CMake configure/build passed on macOS with AppleClang.
-- Core static library built successfully as `libSectionPropertyCore.a`.
-- C API shared library built successfully as `libSectionPropertyTool.dylib`.
-- `SectionPropertyGui` built successfully in the Qt-enabled `build-qt` build.
-- Tests passed with CTest: `1/1 tests passed`.
-- The three example programs executed successfully from `build-qt/Library/bin`.
-
-Generated artifacts confirmed in the CMake build outputs:
-
-- `libSectionPropertyTool.dylib`
-- `libSectionPropertyCore.a`
-- `SectionPropertyTests`
-- `example1_parametric`
-- `example2_canvas`
-- `example3_dll_batch`
-- `SectionPropertyGui` in the Qt-enabled build.
-
-## Not yet verified
-
-- Windows core/API build is verified with CMake/MSVC on Windows 10/11.
-- `SectionPropertyTool.dll` and `SectionPropertyTool.lib` generation is verified,
-  and exported symbols are confirmed.
-- Windows Qt 5.15.2 GUI deployment still needs verification on the target
-  Windows environment.
-- FEM export formats still need acceptance testing against ANSYS / ABAQUS /
-  Midas Civil expectations.
-
-## Windows Build
-
-On Windows with Visual Studio 2022, use the following build flow:
-
-```bat
-cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64
-cmake --build build-msvc --config Release
-ctest --test-dir build-msvc -C Release --output-on-failure
-```
-
-If your source path is long, use a short build directory such as
-`C:\bsp_build` to avoid MSVC file-tracking path length issues.
-
-A helper script `build_windows.bat` is included for this workflow.
-- Numerical validation still needs a formal expected-vs-actual report using
-  `Test Data.xls` and/or analytical/commercial-software references.
-- Crane girder behavior requires further validation beyond the supplied XLS case
-  because the PDF diagram is not fully dimensioned.
-
-## Build instructions
+## macOS and Linux Builds
 
 Core/API build:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Qt-enabled macOS build using Homebrew `qt@5`:
+Qt 5 GUI build on macOS with Homebrew `qt@5`:
 
 ```bash
-cmake -S . -B build-qt -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
-cmake --build build-qt
-ctest --test-dir build-qt --output-on-failure
+cmake -S . -B build-qt5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" -DSPT_QT_VERSION=5
+cmake --build build-qt5
+ctest --test-dir build-qt5 --output-on-failure
 ```
 
-Run examples from the Qt-enabled build:
+Qt 6 GUI build on macOS with Homebrew `qt`:
 
 ```bash
-./build-qt/Library/bin/example1_parametric
-./build-qt/Library/bin/example2_canvas
-./build-qt/Library/bin/example3_dll_batch
+cmake -S . -B build-qt6 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" -DSPT_QT_VERSION=6
+cmake --build build-qt6
+ctest --test-dir build-qt6 --output-on-failure
 ```
 
-Qt is optional at configure time. If Qt5 Widgets is found, CMake also builds the
-`SectionPropertyGui` target. Without Qt5 Widgets, the core library, C API shared
-library, examples, and tests still build.
+## Windows Build
 
-## Remaining tasks before completion
+Core/API build with Visual Studio 2022:
 
-1. Verify Windows build with CMake/MSVC.
-2. Produce and verify `.dll`, `.lib`, exported symbols, and Windows usage
-   examples.
-3. Verify Qt 5.15.2 GUI build and deployment on Windows.
-4. Produce expected-vs-actual numerical validation tables.
-5. Validate FEM export card formats.
-6. Validate crane girder calculations with more than the supplied reference
-   case.
-7. Review the user manual for completeness against the requirements.
+```bat
+cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64 -DSPT_QT_VERSION=OFF
+cmake --build build-msvc --config Release
+ctest --test-dir build-msvc -C Release --output-on-failure
+```
+
+If the source path is long, use a short build directory such as
+`C:\bsp_build` to avoid MSVC file-tracking path length issues. A helper script
+`build_windows.bat` is included for that workflow.
+
+Qt 5 GUI verification on Windows is documented in
+`Documents/Windows_Qt_Verification.md`. Keep the runtime checklist unchecked
+until it is executed on a real Windows machine.
+
+## Qt Build Options
+
+Qt is optional. The CMake cache variable `SPT_QT_VERSION` controls GUI
+discovery:
+
+| Value | Behavior |
+|---|---|
+| `AUTO` | Prefer Qt 6 Widgets, then fall back to Qt 5 Widgets. |
+| `6` | Require/select Qt 6 Widgets for `SectionPropertyGui`. |
+| `5` | Require/select Qt 5 Widgets for `SectionPropertyGui`. |
+| `OFF` | Skip GUI discovery and build only core/API/tests/examples. |
+
+Without Qt Widgets, the core static library, C API shared library, examples,
+and tests still build.
+
+## Project Structure
+
+```text
+Source/
+  api/              C ABI wrapper and exported header
+  calculation/      Section property calculation engine
+  common/           Shared data model and utility types
+  geometry/         Parametric and Canvas section builders
+  gui/              Optional Qt Widgets application
+  import_export/    CSV, JSON, ANSYS, ABAQUS, and Midas Civil writers
+  mesh/             Lightweight visualization mesh generation
+  stress/           Stress-point generation and transforms
+Examples/           Example API programs
+tests/              Unit, regression, and integration tests
+Documents/          User, validation, API, and developer documentation
+.github/workflows/  CMake CI workflow
+```
+
+## Examples
+
+- `example1_parametric` creates an H section and prints area and inertia.
+- `example2_canvas` creates a three-plate Canvas section and prints centroid
+  data.
+- `example3_dll_batch` calculates multiple section types through the C API.
+
+Run examples after a build:
+
+```bash
+./build/Library/bin/example1_parametric
+./build/Library/bin/example2_canvas
+./build/Library/bin/example3_dll_batch
+```
+
+## Validation
+
+`Documents/Numerical_Validation_Report.md` records the expected-vs-actual
+checks against `Documents/source_requirements/Test Data.xls`. The automated
+regression suite covers H, box, pipe, and the supplied crane girder reference
+case. Non-reference crane girder parameter sets use an approximate plate graph
+and emit a diagnostic warning because the source diagram is not fully
+dimensioned.
+
+FEM export writers emit general section/property values for solver review.
+They are covered by API integration tests, but solver-specific acceptance still
+requires review in ANSYS, ABAQUS, and Midas Civil.
+
+## Documentation
+
+- `Documents/README.md` - documentation index
+- `Documents/Implementation_Status.md` - current verification and blockers
+- `Documents/User Manual.md` - user-facing GUI/manual workflow
+- `Documents/API_Reference.md` - C API reference
+- `Documents/Developer_Guide.md` - developer workflow and extension notes
+- `Documents/Test_Report.md` - automated test coverage
+- `Documents/Numerical_Validation_Report.md` - numerical validation tables
+- `Documents/Windows_Qt_Verification.md` - Windows GUI verification checklist
+- `Documents/Final_Acceptance_Checklist.md` - final delivery checklist
+
+## Remaining Limitations
+
+- GitHub default-branch setting still needs admin-token confirmation before the
+  old `try-whole-implementation` branch can be safely deleted.
+- Windows Qt GUI runtime and deployment smoke testing still require Windows.
+- ANSYS, ABAQUS, and Midas Civil solver-side acceptance remains pending.
+- Warping constant and shear-center fields exist in the data model but are not
+  currently computed or validated.
+- Non-reference crane girder calculations remain approximate pending complete
+  construction rules.
+
+## Final Delivery Checklist
+
+- [x] C++17 core builds on macOS and CI platforms.
+- [x] C API shared library builds.
+- [x] Unit, regression, and integration tests pass.
+- [x] Examples build and run on macOS.
+- [x] Numerical validation report exists for workbook reference values.
+- [x] Optional Qt 5 and Qt 6 macOS builds verified.
+- [x] Windows core/API evidence is documented from prior merged work.
+- [x] GitHub repository default branch switched to `main`.
+- [x] Old `try-whole-implementation` branch deleted after default switch.
+- [ ] Windows Qt GUI runtime/deployment smoke test completed.
+- [ ] FEM solver acceptance completed in target applications.
+- [ ] Final user manual/DOCX package reviewed and signed off.
