@@ -13,6 +13,7 @@
 #include <QtWidgets/QGraphicsView>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QHeaderView>
+#include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMessageBox>
@@ -23,7 +24,10 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 #include <QtGui/QPainter>
+#include <QtGui/QWheelEvent>
 
+#include <algorithm>
+#include <cmath>
 #include <map>
 #include <vector>
 
@@ -44,6 +48,127 @@ QString unitForProperty(const QString& name) {
 
 QPointF toQt(spt::PointYZ point) {
     return QPointF(point.y, -point.z);
+}
+
+QRectF usableSceneRect(QRectF rect) {
+    if (!rect.isValid() || rect.isNull()) {
+        rect = QRectF(-50.0, -50.0, 100.0, 100.0);
+    }
+    const double maxDimension = std::max(rect.width(), rect.height());
+    const double margin = std::max(20.0, maxDimension * 0.08);
+    rect = rect.adjusted(-margin, -margin, margin, margin);
+
+    constexpr double minimumSpan = 100.0;
+    if (rect.width() < minimumSpan) {
+        const double delta = 0.5 * (minimumSpan - rect.width());
+        rect.adjust(-delta, 0.0, delta, 0.0);
+    }
+    if (rect.height() < minimumSpan) {
+        const double delta = 0.5 * (minimumSpan - rect.height());
+        rect.adjust(0.0, -delta, 0.0, delta);
+    }
+    return rect;
+}
+
+void updateSceneRect(QGraphicsScene* scene) {
+    if (!scene) {
+        return;
+    }
+    scene->setSceneRect(usableSceneRect(scene->itemsBoundingRect()));
+}
+
+QPen cosmeticPen(const QColor& color, double width = 1.0, Qt::PenStyle style = Qt::SolidLine) {
+    QPen pen(color, width, style);
+    pen.setCosmetic(true);
+    return pen;
+}
+
+class ZoomableGraphicsView : public QGraphicsView {
+public:
+    explicit ZoomableGraphicsView(QGraphicsScene* scene, QWidget* parent = nullptr)
+        : QGraphicsView(scene, parent) {
+        setRenderHint(QPainter::Antialiasing);
+        setDragMode(QGraphicsView::ScrollHandDrag);
+        setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+        setResizeAnchor(QGraphicsView::AnchorViewCenter);
+        setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
+    }
+
+    void zoomIn() {
+        scaleView(1.25);
+    }
+
+    void zoomOut() {
+        scaleView(0.8);
+    }
+
+    void fitToScene() {
+        if (!scene()) {
+            return;
+        }
+        const QRectF rect = usableSceneRect(scene()->itemsBoundingRect());
+        scene()->setSceneRect(rect);
+        resetTransform();
+        fitInView(rect, Qt::KeepAspectRatio);
+        if (std::max(std::abs(transform().m11()), std::abs(transform().m22())) > 8.0) {
+            resetTransform();
+            scale(8.0, 8.0);
+            centerOn(rect.center());
+        }
+    }
+
+    void resetView() {
+        resetTransform();
+        if (scene()) {
+            centerOn(scene()->sceneRect().center());
+        }
+    }
+
+protected:
+    void wheelEvent(QWheelEvent* event) override {
+        if (event->angleDelta().y() > 0) {
+            zoomIn();
+        } else if (event->angleDelta().y() < 0) {
+            zoomOut();
+        }
+        event->accept();
+    }
+
+private:
+    void scaleView(double factor) {
+        const double nextScale = std::abs(transform().m11() * factor);
+        if (nextScale < 1.0e-6 || nextScale > 1.0e6) {
+            return;
+        }
+        scale(factor, factor);
+    }
+};
+
+QWidget* buildViewPanel(ZoomableGraphicsView* view) {
+    auto* panel = new QWidget;
+    auto* layout = new QVBoxLayout(panel);
+    layout->setContentsMargins(0, 0, 0, 0);
+    auto* tools = new QHBoxLayout;
+    tools->setContentsMargins(0, 0, 0, 0);
+
+    auto* zoomIn = new QPushButton("Zoom +");
+    auto* zoomOut = new QPushButton("Zoom -");
+    auto* fit = new QPushButton("Fit");
+    auto* reset = new QPushButton("Reset");
+
+    QObject::connect(zoomIn, &QPushButton::clicked, view, [view] { view->zoomIn(); });
+    QObject::connect(zoomOut, &QPushButton::clicked, view, [view] { view->zoomOut(); });
+    QObject::connect(fit, &QPushButton::clicked, view, [view] { view->fitToScene(); });
+    QObject::connect(reset, &QPushButton::clicked, view, [view] { view->resetView(); });
+
+    tools->addWidget(zoomIn);
+    tools->addWidget(zoomOut);
+    tools->addWidget(fit);
+    tools->addWidget(reset);
+    tools->addStretch(1);
+    layout->addLayout(tools);
+    layout->addWidget(view, 1);
+    return panel;
 }
 
 class CrossSectionWindow : public QMainWindow {
@@ -73,6 +198,9 @@ private:
     QGraphicsScene* generalScene_ = nullptr;
     QGraphicsScene* stressScene_ = nullptr;
     QGraphicsScene* meshScene_ = nullptr;
+    ZoomableGraphicsView* generalView_ = nullptr;
+    ZoomableGraphicsView* stressView_ = nullptr;
+    ZoomableGraphicsView* meshView_ = nullptr;
     spt::SectionModel model_;
     spt::CalculationResult result_;
 
@@ -105,8 +233,7 @@ private:
         propertyTable_->horizontalHeader()->setStretchLastSection(true);
 
         generalScene_ = new QGraphicsScene(this);
-        auto* view = new QGraphicsView(generalScene_);
-        view->setRenderHint(QPainter::Antialiasing);
+        generalView_ = new ZoomableGraphicsView(generalScene_);
 
         auto* apply = new QPushButton("Apply");
         connect(apply, &QPushButton::clicked, this, [this] { recalculate(); });
@@ -119,7 +246,7 @@ private:
         layout->addWidget(typeCombo_, 0, 1);
         layout->addWidget(new QLabel("Geometry Parameters"), 1, 0, 1, 2);
         layout->addWidget(parameterTable_, 2, 0, 1, 2);
-        layout->addWidget(view, 0, 2, 3, 1);
+        layout->addWidget(buildViewPanel(generalView_), 0, 2, 3, 1);
         layout->addWidget(new QLabel("Properties"), 3, 0, 1, 3);
         layout->addWidget(propertyTable_, 4, 0, 1, 3);
         layout->addWidget(ok, 5, 0);
@@ -141,14 +268,13 @@ private:
             }
         });
         stressScene_ = new QGraphicsScene(this);
-        auto* view = new QGraphicsView(stressScene_);
-        view->setRenderHint(QPainter::Antialiasing);
+        stressView_ = new ZoomableGraphicsView(stressScene_);
         auto* reset = new QPushButton("Reset Defaults");
         connect(reset, &QPushButton::clicked, this, [this] {
             recalculate();
         });
         layout->addWidget(stressTable_, 0, 0);
-        layout->addWidget(view, 0, 1);
+        layout->addWidget(buildViewPanel(stressView_), 0, 1);
         layout->addWidget(reset, 1, 0, 1, 2);
         tabs_->addTab(page, "Stress Points");
     }
@@ -164,11 +290,10 @@ private:
             updateMesh();
         });
         meshScene_ = new QGraphicsScene(this);
-        auto* view = new QGraphicsView(meshScene_);
-        view->setRenderHint(QPainter::Antialiasing);
+        meshView_ = new ZoomableGraphicsView(meshScene_);
         layout->addWidget(new QLabel("Mesh refinement factor"), 0, 0);
         layout->addWidget(meshRefinement_, 0, 1);
-        layout->addWidget(view, 1, 0, 1, 2);
+        layout->addWidget(buildViewPanel(meshView_), 1, 0, 1, 2);
         tabs_->addTab(page, "FE Mesh");
     }
 
@@ -243,9 +368,9 @@ private:
         result_ = spt::SectionCalculator::calculate(model_);
         updateProperties();
         updateStressTable();
-        drawSection(generalScene_, true);
-        drawSection(stressScene_, true);
-        updateMesh();
+        drawSection(generalScene_, true, generalView_, true);
+        drawSection(stressScene_, true, stressView_, true);
+        updateMesh(true);
     }
 
     void buildCanvasSection() {
@@ -314,12 +439,12 @@ private:
             result_.stressPoints[r].global.z = stressTable_->item(r, 2)->text().toDouble();
             result_.stressPoints[r].principal = spt::StressPointEngine::toPrincipal(result_.stressPoints[r].global, result_.properties);
         }
-        drawSection(stressScene_, true);
+        drawSection(stressScene_, true, stressView_, false);
     }
 
-    void drawSection(QGraphicsScene* scene, bool includeStress) {
+    void drawSection(QGraphicsScene* scene, bool includeStress, ZoomableGraphicsView* view, bool fit) {
         scene->clear();
-        const QPen outline(Qt::black, 1.4);
+        const QPen outline = cosmeticPen(Qt::black, 1.4);
         const QBrush fill(QColor(85, 125, 255, 70));
         for (const auto& contour : model_.contours) {
             QPolygonF polygon;
@@ -331,14 +456,21 @@ private:
         if (includeStress) {
             for (const auto& point : result_.stressPoints) {
                 const QPointF p = toQt(point.global);
-                scene->addEllipse(p.x() - 4, p.y() - 4, 8, 8, QPen(Qt::red), QBrush(Qt::red));
-                scene->addText(QString::number(point.id))->setPos(p + QPointF(4, -18));
+                auto* marker = scene->addEllipse(-4, -4, 8, 8, cosmeticPen(Qt::red), QBrush(Qt::red));
+                marker->setPos(p);
+                marker->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+                auto* label = scene->addText(QString::number(point.id));
+                label->setPos(p + QPointF(4, -18));
+                label->setFlag(QGraphicsItem::ItemIgnoresTransformations);
             }
         }
-        scene->setSceneRect(scene->itemsBoundingRect().adjusted(-20, -20, 20, 20));
+        updateSceneRect(scene);
+        if (fit && view) {
+            view->fitToScene();
+        }
     }
 
-    void updateMesh() {
+    void updateMesh(bool fit = false) {
         if (!meshScene_) {
             return;
         }
@@ -346,7 +478,8 @@ private:
         spt::MeshSettings settings;
         settings.refinementFactor = meshRefinement_ ? meshRefinement_->value() : 1.0;
         auto mesh = spt::MeshEngine::generate(model_, settings);
-        const QPen pen(QColor(120, 120, 120), 0.5);
+        result_.meshSummary = mesh;
+        const QPen pen = cosmeticPen(QColor(120, 120, 120), 0.5);
         for (const auto& tri : mesh.triangles) {
             if (tri.n1 < 0 || tri.n2 < 0 || tri.n3 < 0) {
                 continue;
@@ -355,7 +488,10 @@ private:
             polygon << toQt(mesh.nodes[tri.n1]) << toQt(mesh.nodes[tri.n2]) << toQt(mesh.nodes[tri.n3]);
             meshScene_->addPolygon(polygon, pen, QBrush(Qt::NoBrush));
         }
-        meshScene_->setSceneRect(meshScene_->itemsBoundingRect().adjusted(-20, -20, 20, 20));
+        updateSceneRect(meshScene_);
+        if (fit && meshView_) {
+            meshView_->fitToScene();
+        }
     }
 };
 
