@@ -1,9 +1,15 @@
 #include "calculation/SectionCalculator.h"
+#include "geometry/GeometryUtils.h"
 #include "geometry/SectionBuilder.h"
 #include "mesh/MeshEngine.h"
 #include "stress/StressPointEngine.h"
 
+#include <QtCore/QLineF>
+#include <QtCore/QSignalBlocker>
+#include <QtCore/QStringList>
+#include <QtWidgets/QAbstractItemView>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QDoubleSpinBox>
 #include <QtWidgets/QGraphicsEllipseItem>
@@ -15,6 +21,7 @@
 #include <QtWidgets/QHeaderView>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
+#include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QPushButton>
@@ -23,12 +30,17 @@
 #include <QtWidgets/QTableWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+#include <QtGui/QKeyEvent>
+#include <QtGui/QMouseEvent>
 #include <QtGui/QPainter>
 #include <QtGui/QWheelEvent>
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <map>
+#include <set>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -48,6 +60,10 @@ QString unitForProperty(const QString& name) {
 
 QPointF toQt(spt::PointYZ point) {
     return QPointF(point.y, -point.z);
+}
+
+spt::PointYZ fromQt(const QPointF& point) {
+    return {point.x(), -point.y()};
 }
 
 QRectF usableSceneRect(QRectF rect) {
@@ -144,6 +160,161 @@ private:
     }
 };
 
+enum class CanvasTool {
+    Select,
+    DrawPlate
+};
+
+class CanvasGraphicsView : public ZoomableGraphicsView {
+public:
+    explicit CanvasGraphicsView(QGraphicsScene* scene, QWidget* parent = nullptr)
+        : ZoomableGraphicsView(scene, parent) {
+        setTool(CanvasTool::Select);
+    }
+
+    void setTool(CanvasTool tool) {
+        tool_ = tool;
+        cancelDrawing();
+        setDragMode(tool_ == CanvasTool::DrawPlate ? QGraphicsView::NoDrag : QGraphicsView::ScrollHandDrag);
+        viewport()->setCursor(tool_ == CanvasTool::DrawPlate ? Qt::CrossCursor : Qt::ArrowCursor);
+    }
+
+    void setPlateDrawnHandler(std::function<void(spt::PointYZ, spt::PointYZ)> handler) {
+        plateDrawnHandler_ = std::move(handler);
+    }
+
+    void setPlateSelectedHandler(std::function<void(int)> handler) {
+        plateSelectedHandler_ = std::move(handler);
+    }
+
+    void setShowGrid(bool show) {
+        showGrid_ = show;
+        viewport()->update();
+    }
+
+    void setSnapToGrid(bool snap) {
+        snapToGrid_ = snap;
+    }
+
+    void cancelDrawing() {
+        drawing_ = false;
+        removePreviewLine();
+    }
+
+protected:
+    void drawBackground(QPainter* painter, const QRectF& rect) override {
+        QGraphicsView::drawBackground(painter, rect);
+        if (!showGrid_) {
+            return;
+        }
+
+        double step = gridSpacing_;
+        while ((rect.width() / step) > 240.0 || (rect.height() / step) > 240.0) {
+            step *= 2.0;
+        }
+
+        std::vector<QLineF> lines;
+        for (double x = std::floor(rect.left() / step) * step; x <= rect.right(); x += step) {
+            lines.push_back(QLineF(x, rect.top(), x, rect.bottom()));
+        }
+        for (double y = std::floor(rect.top() / step) * step; y <= rect.bottom(); y += step) {
+            lines.push_back(QLineF(rect.left(), y, rect.right(), y));
+        }
+
+        painter->save();
+        painter->setPen(cosmeticPen(QColor(210, 215, 225), 0.0));
+        if (!lines.empty()) {
+            painter->drawLines(lines.data(), static_cast<int>(lines.size()));
+        }
+        painter->restore();
+    }
+
+    void mousePressEvent(QMouseEvent* event) override {
+        if (tool_ == CanvasTool::DrawPlate && event->button() == Qt::LeftButton) {
+            const QPointF point = snapPoint(mapToScene(event->pos()));
+            if (!drawing_) {
+                drawing_ = true;
+                drawStart_ = point;
+                previewLine_ = scene()->addLine(QLineF(drawStart_, drawStart_), cosmeticPen(QColor(25, 118, 210), 1.8, Qt::DashLine));
+                previewLine_->setZValue(10.0);
+            } else {
+                const spt::PointYZ start = fromQt(drawStart_);
+                const spt::PointYZ end = fromQt(point);
+                cancelDrawing();
+                if (plateDrawnHandler_) {
+                    plateDrawnHandler_(start, end);
+                }
+            }
+            event->accept();
+            return;
+        }
+
+        if (tool_ == CanvasTool::Select && event->button() == Qt::LeftButton) {
+            QGraphicsItem* item = itemAt(event->pos());
+            while (item && !item->data(0).isValid()) {
+                item = item->parentItem();
+            }
+            bool ok = false;
+            const int row = item ? item->data(0).toInt(&ok) : -1;
+            if (ok && plateSelectedHandler_) {
+                plateSelectedHandler_(row);
+                event->accept();
+                return;
+            }
+        }
+
+        ZoomableGraphicsView::mousePressEvent(event);
+    }
+
+    void mouseMoveEvent(QMouseEvent* event) override {
+        if (tool_ == CanvasTool::DrawPlate && drawing_ && previewLine_) {
+            previewLine_->setLine(QLineF(drawStart_, snapPoint(mapToScene(event->pos()))));
+            event->accept();
+            return;
+        }
+        ZoomableGraphicsView::mouseMoveEvent(event);
+    }
+
+    void keyPressEvent(QKeyEvent* event) override {
+        if (event->key() == Qt::Key_Escape && drawing_) {
+            cancelDrawing();
+            event->accept();
+            return;
+        }
+        ZoomableGraphicsView::keyPressEvent(event);
+    }
+
+private:
+    QPointF snapPoint(const QPointF& point) const {
+        if (!snapToGrid_) {
+            return point;
+        }
+        return QPointF(std::round(point.x() / gridSpacing_) * gridSpacing_,
+                       std::round(point.y() / gridSpacing_) * gridSpacing_);
+    }
+
+    void removePreviewLine() {
+        if (!previewLine_) {
+            return;
+        }
+        if (scene()) {
+            scene()->removeItem(previewLine_);
+        }
+        delete previewLine_;
+        previewLine_ = nullptr;
+    }
+
+    CanvasTool tool_ = CanvasTool::Select;
+    bool drawing_ = false;
+    bool showGrid_ = true;
+    bool snapToGrid_ = false;
+    double gridSpacing_ = 25.0;
+    QPointF drawStart_;
+    QGraphicsLineItem* previewLine_ = nullptr;
+    std::function<void(spt::PointYZ, spt::PointYZ)> plateDrawnHandler_;
+    std::function<void(int)> plateSelectedHandler_;
+};
+
 QWidget* buildViewPanel(ZoomableGraphicsView* view) {
     auto* panel = new QWidget;
     auto* layout = new QVBoxLayout(panel);
@@ -195,14 +366,22 @@ private:
     QTableWidget* stressTable_ = nullptr;
     QTableWidget* canvasTable_ = nullptr;
     QDoubleSpinBox* meshRefinement_ = nullptr;
+    QDoubleSpinBox* canvasThickness_ = nullptr;
+    QLineEdit* canvasIdEdit_ = nullptr;
+    QLabel* canvasStatus_ = nullptr;
     QGraphicsScene* generalScene_ = nullptr;
     QGraphicsScene* stressScene_ = nullptr;
     QGraphicsScene* meshScene_ = nullptr;
+    QGraphicsScene* canvasScene_ = nullptr;
     ZoomableGraphicsView* generalView_ = nullptr;
     ZoomableGraphicsView* stressView_ = nullptr;
     ZoomableGraphicsView* meshView_ = nullptr;
+    CanvasGraphicsView* canvasView_ = nullptr;
     spt::SectionModel model_;
     spt::CalculationResult result_;
+    bool updatingCanvasTable_ = false;
+    int selectedCanvasRow_ = -1;
+    int nextPlateNumber_ = 1;
 
     void buildGeneralTab() {
         auto* page = new QWidget;
@@ -300,26 +479,412 @@ private:
     void buildCanvasTab() {
         auto* page = new QWidget;
         auto* layout = new QVBoxLayout(page);
+        auto* splitter = new QSplitter(Qt::Horizontal);
+
+        auto* left = new QWidget;
+        auto* leftLayout = new QVBoxLayout(left);
+        leftLayout->setContentsMargins(0, 0, 0, 0);
+
         canvasTable_ = new QTableWidget;
         canvasTable_->setColumnCount(6);
         canvasTable_->setHorizontalHeaderLabels({"y1", "z1", "y2", "z2", "t", "id"});
-        canvasTable_->setRowCount(3);
-        const double values[3][5] = {{0, 0, 100, 0, 10}, {50, 0, 50, 120, 8}, {0, 120, 100, 120, 10}};
-        for (int r = 0; r < 3; ++r) {
-            for (int c = 0; c < 5; ++c) {
-                canvasTable_->setItem(r, c, new QTableWidgetItem(QString::number(values[r][c])));
+        canvasTable_->horizontalHeader()->setStretchLastSection(true);
+        canvasTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+        canvasTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+        connect(canvasTable_, &QTableWidget::cellChanged, this, [this](int row, int) {
+            if (!updatingCanvasTable_) {
+                selectedCanvasRow_ = row;
+                redrawCanvasScene();
             }
-            canvasTable_->setItem(r, 5, new QTableWidgetItem(QString("plate_%1").arg(r + 1)));
-        }
-        auto* fromCanvas = new QPushButton("Build Canvas Section");
-        connect(fromCanvas, &QPushButton::clicked, this, [this] {
-            buildCanvasSection();
-            recalculate();
-            tabs_->setCurrentIndex(0);
         });
-        layout->addWidget(canvasTable_);
-        layout->addWidget(fromCanvas);
+        connect(canvasTable_, &QTableWidget::currentCellChanged, this, [this](int row, int, int, int) {
+            if (!updatingCanvasTable_) {
+                selectCanvasRow(row);
+            }
+        });
+
+        auto* inputLayout = new QGridLayout;
+        canvasThickness_ = new QDoubleSpinBox;
+        canvasThickness_->setRange(0.001, 1.0e9);
+        canvasThickness_->setDecimals(3);
+        canvasThickness_->setValue(10.0);
+        canvasThickness_->setSingleStep(1.0);
+        canvasIdEdit_ = new QLineEdit;
+        canvasIdEdit_->setPlaceholderText("auto");
+        inputLayout->addWidget(new QLabel("New plate thickness"), 0, 0);
+        inputLayout->addWidget(canvasThickness_, 0, 1);
+        inputLayout->addWidget(new QLabel("New plate id"), 1, 0);
+        inputLayout->addWidget(canvasIdEdit_, 1, 1);
+
+        auto* addPlate = new QPushButton("Add Plate");
+        auto* deletePlate = new QPushButton("Delete Selected Plate");
+        auto* clearAll = new QPushButton("Clear All");
+        auto* buildSection = new QPushButton("Build Canvas Section");
+        connect(addPlate, &QPushButton::clicked, this, [this] { addDefaultCanvasPlate(); });
+        connect(deletePlate, &QPushButton::clicked, this, [this] { deleteSelectedCanvasPlate(); });
+        connect(clearAll, &QPushButton::clicked, this, [this] { clearCanvasPlates(); });
+        connect(buildSection, &QPushButton::clicked, this, [this] { buildCanvasSection(); });
+
+        auto* leftButtons = new QGridLayout;
+        leftButtons->addWidget(addPlate, 0, 0);
+        leftButtons->addWidget(deletePlate, 0, 1);
+        leftButtons->addWidget(clearAll, 1, 0);
+        leftButtons->addWidget(buildSection, 1, 1);
+
+        canvasStatus_ = new QLabel("Canvas ready");
+        leftLayout->addLayout(inputLayout);
+        leftLayout->addWidget(canvasTable_, 1);
+        leftLayout->addLayout(leftButtons);
+        leftLayout->addWidget(canvasStatus_);
+
+        auto* right = new QWidget;
+        auto* rightLayout = new QVBoxLayout(right);
+        rightLayout->setContentsMargins(0, 0, 0, 0);
+        canvasScene_ = new QGraphicsScene(this);
+        canvasView_ = new CanvasGraphicsView(canvasScene_);
+        canvasView_->setPlateDrawnHandler([this](spt::PointYZ start, spt::PointYZ end) {
+            addDrawnCanvasPlate(start, end);
+        });
+        canvasView_->setPlateSelectedHandler([this](int row) {
+            selectCanvasRow(row);
+        });
+
+        auto* selectMode = new QPushButton("Select/Edit");
+        auto* drawMode = new QPushButton("Draw Plate");
+        selectMode->setCheckable(true);
+        drawMode->setCheckable(true);
+        selectMode->setChecked(true);
+        auto setTool = [this, selectMode, drawMode](CanvasTool tool) {
+            selectMode->setChecked(tool == CanvasTool::Select);
+            drawMode->setChecked(tool == CanvasTool::DrawPlate);
+            canvasView_->setTool(tool);
+        };
+        connect(selectMode, &QPushButton::clicked, this, [setTool] { setTool(CanvasTool::Select); });
+        connect(drawMode, &QPushButton::clicked, this, [setTool] { setTool(CanvasTool::DrawPlate); });
+
+        auto* canvasDelete = new QPushButton("Delete Selected");
+        auto* canvasZoomIn = new QPushButton("Zoom +");
+        auto* canvasZoomOut = new QPushButton("Zoom -");
+        auto* canvasFit = new QPushButton("Fit");
+        auto* canvasReset = new QPushButton("Reset");
+        auto* showGrid = new QCheckBox("Show Grid");
+        auto* snapGrid = new QCheckBox("Snap to Grid");
+        showGrid->setChecked(true);
+        connect(canvasDelete, &QPushButton::clicked, this, [this] { deleteSelectedCanvasPlate(); });
+        connect(canvasZoomIn, &QPushButton::clicked, canvasView_, [this] { canvasView_->zoomIn(); });
+        connect(canvasZoomOut, &QPushButton::clicked, canvasView_, [this] { canvasView_->zoomOut(); });
+        connect(canvasFit, &QPushButton::clicked, canvasView_, [this] { canvasView_->fitToScene(); });
+        connect(canvasReset, &QPushButton::clicked, canvasView_, [this] { canvasView_->resetView(); });
+        connect(showGrid, &QCheckBox::toggled, canvasView_, [this](bool checked) { canvasView_->setShowGrid(checked); });
+        connect(snapGrid, &QCheckBox::toggled, canvasView_, [this](bool checked) { canvasView_->setSnapToGrid(checked); });
+
+        auto* canvasTools = new QHBoxLayout;
+        canvasTools->setContentsMargins(0, 0, 0, 0);
+        canvasTools->addWidget(selectMode);
+        canvasTools->addWidget(drawMode);
+        canvasTools->addWidget(canvasDelete);
+        canvasTools->addSpacing(12);
+        canvasTools->addWidget(canvasZoomIn);
+        canvasTools->addWidget(canvasZoomOut);
+        canvasTools->addWidget(canvasFit);
+        canvasTools->addWidget(canvasReset);
+        canvasTools->addSpacing(12);
+        canvasTools->addWidget(showGrid);
+        canvasTools->addWidget(snapGrid);
+        canvasTools->addStretch(1);
+
+        rightLayout->addLayout(canvasTools);
+        rightLayout->addWidget(canvasView_, 1);
+
+        splitter->addWidget(left);
+        splitter->addWidget(right);
+        splitter->setStretchFactor(0, 0);
+        splitter->setStretchFactor(1, 1);
+        layout->addWidget(splitter);
         tabs_->addTab(page, "Canvas");
+        redrawCanvasScene();
+    }
+
+    QString formatCanvasNumber(double value) const {
+        return QString::number(value, 'g', 12);
+    }
+
+    QString canvasCellText(int row, int column) const {
+        const auto* item = canvasTable_->item(row, column);
+        return item ? item->text().trimmed() : QString();
+    }
+
+    void setCanvasCell(int row, int column, const QString& value) {
+        auto* item = canvasTable_->item(row, column);
+        if (!item) {
+            item = new QTableWidgetItem;
+            canvasTable_->setItem(row, column, item);
+        }
+        item->setText(value);
+    }
+
+    bool readCanvasDouble(int row, int column, const QString& name, double& value, QStringList* errors) const {
+        bool ok = false;
+        value = canvasCellText(row, column).toDouble(&ok);
+        if (!ok || !std::isfinite(value)) {
+            if (errors) {
+                errors->push_back(QString("Row %1: %2 must be numeric.").arg(row + 1).arg(name));
+            }
+            return false;
+        }
+        return true;
+    }
+
+    std::set<QString> existingCanvasIds(int skipRow = -1) const {
+        std::set<QString> ids;
+        for (int row = 0; row < canvasTable_->rowCount(); ++row) {
+            if (row == skipRow) {
+                continue;
+            }
+            const QString id = canvasCellText(row, 5);
+            if (!id.isEmpty()) {
+                ids.insert(id);
+            }
+        }
+        return ids;
+    }
+
+    QString nextCanvasId() {
+        return nextCanvasId({});
+    }
+
+    QString nextCanvasId(const std::set<QString>& reserved) {
+        std::set<QString> ids = existingCanvasIds();
+        ids.insert(reserved.begin(), reserved.end());
+        QString id;
+        do {
+            id = QString("plate_%1").arg(nextPlateNumber_++);
+        } while (ids.count(id) != 0);
+        return id;
+    }
+
+    QString uniqueCanvasId(const QString& requested) {
+        const std::set<QString> ids = existingCanvasIds();
+        QString base = requested.trimmed();
+        if (base.isEmpty()) {
+            return nextCanvasId();
+        }
+        if (ids.count(base) == 0) {
+            return base;
+        }
+        int suffix = 2;
+        QString candidate;
+        do {
+            candidate = QString("%1_%2").arg(base).arg(suffix++);
+        } while (ids.count(candidate) != 0);
+        return candidate;
+    }
+
+    bool readCanvasPlateForDisplay(int row, spt::PlateSegment& plate) const {
+        QStringList ignored;
+        if (!readCanvasDouble(row, 0, "y1", plate.start.y, &ignored) ||
+            !readCanvasDouble(row, 1, "z1", plate.start.z, &ignored) ||
+            !readCanvasDouble(row, 2, "y2", plate.end.y, &ignored) ||
+            !readCanvasDouble(row, 3, "z2", plate.end.z, &ignored) ||
+            !readCanvasDouble(row, 4, "t", plate.thickness, &ignored)) {
+            return false;
+        }
+        if (plate.thickness <= 0.0 || spt::distance(plate.start, plate.end) <= 1.0e-9) {
+            return false;
+        }
+        const QString id = canvasCellText(row, 5);
+        plate.id = id.isEmpty() ? QString("row_%1").arg(row + 1).toStdString() : id.toStdString();
+        return true;
+    }
+
+    std::vector<spt::PlateSegment> collectCanvasPlatesForBuild(QStringList& errors) {
+        std::map<QString, int> explicitIdCounts;
+        for (int row = 0; row < canvasTable_->rowCount(); ++row) {
+            const QString id = canvasCellText(row, 5);
+            if (!id.isEmpty()) {
+                ++explicitIdCounts[id];
+            }
+        }
+
+        std::set<QString> usedIds;
+        std::vector<spt::PlateSegment> plates;
+        for (int row = 0; row < canvasTable_->rowCount(); ++row) {
+            spt::PlateSegment plate;
+            bool rowOk = true;
+            rowOk &= readCanvasDouble(row, 0, "y1", plate.start.y, &errors);
+            rowOk &= readCanvasDouble(row, 1, "z1", plate.start.z, &errors);
+            rowOk &= readCanvasDouble(row, 2, "y2", plate.end.y, &errors);
+            rowOk &= readCanvasDouble(row, 3, "z2", plate.end.z, &errors);
+            rowOk &= readCanvasDouble(row, 4, "t", plate.thickness, &errors);
+
+            QString id = canvasCellText(row, 5);
+            if (id.isEmpty()) {
+                id = nextCanvasId(usedIds);
+                const QSignalBlocker blocker(canvasTable_);
+                setCanvasCell(row, 5, id);
+            } else if (explicitIdCounts[id] > 1 || usedIds.count(id) != 0) {
+                errors.push_back(QString("Row %1: id '%2' must be unique.").arg(row + 1).arg(id));
+                rowOk = false;
+            }
+            usedIds.insert(id);
+
+            if (rowOk && plate.thickness <= 0.0) {
+                errors.push_back(QString("Row %1: thickness must be positive.").arg(row + 1));
+                rowOk = false;
+            }
+            if (rowOk && spt::distance(plate.start, plate.end) <= 1.0e-9) {
+                errors.push_back(QString("Row %1: plate length must be greater than zero.").arg(row + 1));
+                rowOk = false;
+            }
+            if (!rowOk) {
+                continue;
+            }
+            plate.id = id.toStdString();
+            plates.push_back(plate);
+        }
+
+        if (plates.empty() && errors.empty()) {
+            errors.push_back("Add at least one valid plate before building the Canvas section.");
+        }
+        return plates;
+    }
+
+    void addDefaultCanvasPlate() {
+        spt::PlateSegment plate;
+        plate.start = {0.0, 0.0};
+        plate.end = {100.0, 0.0};
+        plate.thickness = canvasThickness_ ? canvasThickness_->value() : 10.0;
+        plate.id = uniqueCanvasId(canvasIdEdit_ ? canvasIdEdit_->text() : QString()).toStdString();
+        insertCanvasPlate(plate, true);
+    }
+
+    void addDrawnCanvasPlate(spt::PointYZ start, spt::PointYZ end) {
+        if (spt::distance(start, end) <= 1.0e-9) {
+            QMessageBox::warning(this, "Invalid Plate", "A Canvas plate must have positive length.");
+            return;
+        }
+        spt::PlateSegment plate;
+        plate.start = start;
+        plate.end = end;
+        plate.thickness = canvasThickness_ ? canvasThickness_->value() : 10.0;
+        plate.id = uniqueCanvasId(canvasIdEdit_ ? canvasIdEdit_->text() : QString()).toStdString();
+        insertCanvasPlate(plate, true);
+    }
+
+    void insertCanvasPlate(const spt::PlateSegment& plate, bool fit) {
+        updatingCanvasTable_ = true;
+        const QSignalBlocker blocker(canvasTable_);
+        const int row = canvasTable_->rowCount();
+        canvasTable_->insertRow(row);
+        setCanvasCell(row, 0, formatCanvasNumber(plate.start.y));
+        setCanvasCell(row, 1, formatCanvasNumber(plate.start.z));
+        setCanvasCell(row, 2, formatCanvasNumber(plate.end.y));
+        setCanvasCell(row, 3, formatCanvasNumber(plate.end.z));
+        setCanvasCell(row, 4, formatCanvasNumber(plate.thickness));
+        setCanvasCell(row, 5, QString::fromStdString(plate.id));
+        updatingCanvasTable_ = false;
+        selectCanvasRow(row);
+        redrawCanvasScene();
+        if (fit && canvasView_) {
+            canvasView_->fitToScene();
+        }
+    }
+
+    void deleteSelectedCanvasPlate() {
+        const int row = canvasTable_->currentRow() >= 0 ? canvasTable_->currentRow() : selectedCanvasRow_;
+        if (row < 0 || row >= canvasTable_->rowCount()) {
+            return;
+        }
+        updatingCanvasTable_ = true;
+        const QSignalBlocker blocker(canvasTable_);
+        canvasTable_->removeRow(row);
+        updatingCanvasTable_ = false;
+        const int nextRow = std::min(row, canvasTable_->rowCount() - 1);
+        selectCanvasRow(nextRow);
+        redrawCanvasScene();
+    }
+
+    void clearCanvasPlates() {
+        updatingCanvasTable_ = true;
+        const QSignalBlocker blocker(canvasTable_);
+        canvasTable_->setRowCount(0);
+        updatingCanvasTable_ = false;
+        selectedCanvasRow_ = -1;
+        redrawCanvasScene();
+        if (canvasStatus_) {
+            canvasStatus_->setText("Canvas cleared");
+        }
+    }
+
+    void selectCanvasRow(int row) {
+        if (row < 0 || row >= canvasTable_->rowCount()) {
+            selectedCanvasRow_ = -1;
+            canvasTable_->clearSelection();
+            redrawCanvasScene();
+            return;
+        }
+        selectedCanvasRow_ = row;
+        const QSignalBlocker blocker(canvasTable_);
+        canvasTable_->selectRow(row);
+        canvasTable_->setCurrentCell(row, 0);
+        redrawCanvasScene();
+    }
+
+    void drawCanvasEndpoint(const QPointF& point, int row, const QColor& color) {
+        auto* endpoint = canvasScene_->addEllipse(-3.5, -3.5, 7.0, 7.0, cosmeticPen(color, 1.0), QBrush(color));
+        endpoint->setPos(point);
+        endpoint->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+        endpoint->setData(0, row);
+        endpoint->setZValue(4.0);
+    }
+
+    void drawCanvasPlate(int row, const spt::PlateSegment& plate, bool selected) {
+        QPolygonF polygon;
+        for (const auto& point : spt::plateToPolygon(plate)) {
+            polygon << toQt(point);
+        }
+
+        const QColor outlineColor = selected ? QColor(230, 126, 34) : QColor(36, 78, 112);
+        const QColor fillColor = selected ? QColor(255, 193, 7, 115) : QColor(64, 145, 190, 80);
+        const QColor lineColor = selected ? QColor(194, 92, 23) : QColor(20, 83, 122);
+        if (!polygon.isEmpty()) {
+            auto* item = canvasScene_->addPolygon(polygon, cosmeticPen(outlineColor, selected ? 2.0 : 1.2), QBrush(fillColor));
+            item->setData(0, row);
+            item->setZValue(selected ? 2.0 : 1.0);
+        }
+
+        const QPointF start = toQt(plate.start);
+        const QPointF end = toQt(plate.end);
+        auto* centerline = canvasScene_->addLine(QLineF(start, end), cosmeticPen(lineColor, selected ? 2.2 : 1.4));
+        centerline->setData(0, row);
+        centerline->setZValue(3.0);
+        drawCanvasEndpoint(start, row, lineColor);
+        drawCanvasEndpoint(end, row, lineColor);
+
+        auto* label = canvasScene_->addText(QString("%1  t=%2")
+                                                .arg(QString::fromStdString(plate.id))
+                                                .arg(formatCanvasNumber(plate.thickness)));
+        label->setDefaultTextColor(lineColor);
+        label->setFlag(QGraphicsItem::ItemIgnoresTransformations);
+        label->setData(0, row);
+        label->setPos(end + QPointF(6.0, -18.0));
+        label->setZValue(5.0);
+    }
+
+    void redrawCanvasScene() {
+        if (!canvasScene_ || !canvasView_) {
+            return;
+        }
+        canvasView_->cancelDrawing();
+        canvasScene_->clear();
+        for (int row = 0; row < canvasTable_->rowCount(); ++row) {
+            spt::PlateSegment plate;
+            if (readCanvasPlateForDisplay(row, plate)) {
+                drawCanvasPlate(row, plate, row == selectedCanvasRow_);
+            }
+        }
+        updateSceneRect(canvasScene_);
+        canvasView_->viewport()->update();
     }
 
     void setDefaultSection(int index) {
@@ -374,21 +939,48 @@ private:
     }
 
     void buildCanvasSection() {
-        std::vector<spt::PlateSegment> plates;
-        for (int r = 0; r < canvasTable_->rowCount(); ++r) {
-            spt::PlateSegment plate;
-            plate.start.y = canvasTable_->item(r, 0)->text().toDouble();
-            plate.start.z = canvasTable_->item(r, 1)->text().toDouble();
-            plate.end.y = canvasTable_->item(r, 2)->text().toDouble();
-            plate.end.z = canvasTable_->item(r, 3)->text().toDouble();
-            plate.thickness = canvasTable_->item(r, 4)->text().toDouble();
-            plate.id = canvasTable_->item(r, 5)->text().toStdString();
-            plates.push_back(plate);
+        QStringList errors;
+        const std::vector<spt::PlateSegment> plates = collectCanvasPlatesForBuild(errors);
+        if (!errors.empty()) {
+            if (canvasStatus_) {
+                canvasStatus_->setText("Canvas build failed; current results were not changed.");
+            }
+            QMessageBox::warning(this, "Invalid Canvas Section", errors.join("\n"));
+            redrawCanvasScene();
+            return;
         }
+
         auto built = spt::SectionBuilder::buildFromCanvasLines(plates);
-        if (built.ok()) {
-            model_ = built.model;
-            result_ = spt::SectionCalculator::calculate(model_);
+        if (!built.ok()) {
+            QStringList diagnostics;
+            for (const auto& diagnostic : built.diagnostics) {
+                if (diagnostic.severity == spt::ErrorSeverity::Error) {
+                    diagnostics.push_back(QString::fromStdString(diagnostic.message));
+                }
+            }
+            if (diagnostics.empty()) {
+                diagnostics.push_back("Canvas section could not be built.");
+            }
+            if (canvasStatus_) {
+                canvasStatus_->setText("Canvas build failed; current results were not changed.");
+            }
+            QMessageBox::warning(this, "Invalid Canvas Section", diagnostics.join("\n"));
+            return;
+        }
+
+        model_ = built.model;
+        result_ = spt::SectionCalculator::calculate(model_);
+        updateProperties();
+        updateStressTable();
+        drawSection(generalScene_, true, generalView_, true);
+        drawSection(stressScene_, true, stressView_, true);
+        updateMesh(true);
+        redrawCanvasScene();
+        if (canvasView_) {
+            canvasView_->fitToScene();
+        }
+        if (canvasStatus_) {
+            canvasStatus_->setText(QString("Canvas section built from %1 plate(s).").arg(static_cast<int>(plates.size())));
         }
     }
 
