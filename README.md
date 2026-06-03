@@ -19,7 +19,10 @@ setting is changed and confirmed.
 - C-compatible shared-library API in `Source/api/section_property_tool.h`.
 - Parametric H section, box section, pipe section, and quayside crane girder
   section support.
-- Canvas input for user-defined thin-walled plate centerline sections.
+- Advanced Canvas input for drawing user-defined thin-walled plate centerline
+  sections with per-plate thicknesses.
+- Zoomable and pannable Qt graphics views for section, stress-point, mesh, and
+  Canvas visualization.
 - CSV and JSON export.
 - ANSYS, ABAQUS, and Midas Civil general section/property card writers.
 - Optional Qt Widgets GUI target.
@@ -34,7 +37,7 @@ setting is changed and confirmed.
 | Box Section | `SPT_BOX_SECTION` | Hollow box/girder-style section. |
 | Pipe Section | `SPT_PIPE_SECTION` | Circular hollow section. |
 | Quayside Crane Girder | `SPT_CRANE_GIRDER` | XLS reference case plus approximate non-reference plate graph. |
-| Canvas Thin-Walled | `SPT_CANVAS` | User-supplied plate centerlines and thicknesses. |
+| Canvas Thin-Walled | `SPT_CANVAS` | User-supplied or graphically drawn plate centerlines and thicknesses. |
 
 ## Verification Status
 
@@ -131,6 +134,27 @@ discovery:
 Without Qt Widgets, the core static library, C API shared library, examples,
 and tests still build.
 
+## Qt Canvas Workflow
+
+The optional `SectionPropertyGui` includes a Canvas tab for advanced manual
+thin-walled sections. Users can draw plate centerlines directly in the graphics
+view, assign the current thickness to newly drawn plates, and edit exact
+coordinates in the synchronized table. Select/Edit mode keeps table rows and
+canvas plates highlighted together. Draw Plate mode uses first click, preview,
+and second click to create a new plate. Delete Selected and Clear All update
+both the table and canvas.
+
+Graphics views in General, Stress Points, FE Mesh, and Canvas support Zoom In,
+Zoom Out, mouse-wheel zoom, click-and-drag pan, Fit, and Reset. Fit preserves
+aspect ratio and adds margins so very large dimensions remain visible.
+
+When Build Canvas Section succeeds, the Canvas geometry becomes the active
+section and the property table, stress points, FE mesh, and previews are
+refreshed. Canvas calculations currently use the core plate-to-polygon and
+rectangularized component representation; default stress points for arbitrary
+Canvas sections are generated from the first four plate endpoints, and the FE
+mesh is a visualization mesh rather than a solver-quality mesh.
+
 ## Project Structure
 
 ```text
@@ -199,6 +223,8 @@ requires review in ANSYS, ABAQUS, and Midas Civil.
   currently computed or validated.
 - Non-reference crane girder calculations remain approximate pending complete
   construction rules.
+- Canvas endpoint dragging is not implemented yet; use the plate table for
+  precise coordinate edits.
 
 ## Final Delivery Checklist
 
