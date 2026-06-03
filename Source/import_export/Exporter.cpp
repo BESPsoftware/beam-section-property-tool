@@ -187,6 +187,12 @@ bool Exporter::exportAnsys(const CalculationResult& result, const std::string& p
     os << "! Units match model input (mm, mm2, mm4)\n";
     os << "!\n";
     os << "SECTYPE,1,BEAM,ASEC,SPT_SECTION\n";
+    // SECOFFSET,BSEC places the beam reference axis at the section geometric
+    // origin (the same origin used to compute CGy/CGz). Without this command
+    // ANSYS defaults to SECOFFSET,CENT and would double-count the centroid
+    // offset because it shifts the axis to the centroid and then applies
+    // CGy/CGz again.
+    os << "SECOFFSET,BSEC\n";
     const double tkz = (p.area > 0.0) ? p.Az / p.area : 0.0;
     const double tky = (p.area > 0.0) ? p.Ay / p.area : 0.0;
     os << "SECDATA,"

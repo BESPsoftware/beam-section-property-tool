@@ -26,6 +26,16 @@ bool fileContains(const std::filesystem::path& path, const std::string& needle) 
     return false;
 }
 
+bool fileNotContains(const std::filesystem::path& path, const std::string& needle) {
+    std::ifstream in(path);
+    const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    if (text.find(needle) == std::string::npos) {
+        return true;
+    }
+    std::cerr << path.string() << " should not contain: " << needle << "\n";
+    return false;
+}
+
 }  // namespace
 
 bool runApiTests() {
@@ -68,8 +78,10 @@ bool runApiTests() {
     std::remove("spt_test_export.csv");
 
     // ANSYS: SECDATA field order A,Iy,Iz,Iyz,J,CGy,CGz,...
+    // SECOFFSET,BSEC must be present to avoid double-counting CGy/CGz.
     ok &= expectOk(spt_export_results(result, "spt_test_export.mac", SPT_EXPORT_ANSYS), "export ansys");
     ok &= fileContains("spt_test_export.mac", "SECTYPE,1,BEAM,ASEC,SPT_SECTION");
+    ok &= fileContains("spt_test_export.mac", "SECOFFSET,BSEC");
     ok &= fileContains("spt_test_export.mac", "SECDATA,6520");
     std::filesystem::remove("spt_test_export.mac");
 
@@ -86,6 +98,32 @@ bool runApiTests() {
     ok &= fileContains("spt_test_export.mct", "DBUSER");
     ok &= fileContains("spt_test_export.mct", "6520");
     std::filesystem::remove("spt_test_export.mct");
+
+    // Empty-stress-points path: a Canvas section with no plates produces a
+    // result with zero stress points. ABAQUS must omit *SECTION POINTS;
+    // ANSYS must omit the stress-recovery comment block.
+    {
+        SptSectionHandle emptySection = nullptr;
+        spt_create_section_from_canvas_lines(nullptr, 0, &emptySection);
+        SptResultHandle emptyResult = nullptr;
+        if (emptySection) {
+            spt_calculate_section_properties(emptySection, &emptyResult);
+        }
+        if (emptyResult) {
+            ok &= expectOk(spt_export_results(emptyResult, "spt_test_nostress.inp", SPT_EXPORT_ABAQUS), "abaqus no-stress-points");
+            ok &= fileNotContains("spt_test_nostress.inp", "*SECTION POINTS");
+            std::filesystem::remove("spt_test_nostress.inp");
+
+            ok &= expectOk(spt_export_results(emptyResult, "spt_test_nostress.mac", SPT_EXPORT_ANSYS), "ansys no-stress-points");
+            ok &= fileNotContains("spt_test_nostress.mac", "Stress recovery points");
+            std::filesystem::remove("spt_test_nostress.mac");
+
+            spt_destroy_result(emptyResult);
+        }
+        if (emptySection) {
+            spt_destroy_section(emptySection);
+        }
+    }
 
     const std::filesystem::path utf8ExportPath = u8"spt_test_export_测试.csv";
     ok &= expectOk(spt_export_results(result, utf8ExportPath.u8string().c_str(), SPT_EXPORT_CSV), "export utf8");
