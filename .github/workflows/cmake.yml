@@ -36,3 +36,27 @@ jobs:
           ./build/Library/bin/example1_parametric
           ./build/Library/bin/example2_canvas
           ./build/Library/bin/example3_dll_batch
+
+  windows-core:
+    name: windows-core
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Run examples
+        shell: pwsh
+        run: |
+          .\build\Library\bin\Release\example1_parametric.exe
+          .\build\Library\bin\Release\example2_canvas.exe
+          .\build\Library\bin\Release\example3_dll_batch.exe

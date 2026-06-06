@@ -61,6 +61,9 @@ bool runApiTests() {
     SptSectionProperties props{};
     ok &= expectOk(spt_get_result_properties(result, &props), "get props");
     ok &= (props.area > 6500.0 && props.area < 6600.0);
+    ok &= (props.warping_constant > 0.0);
+    ok &= (props.shear_center_y > 0.0);
+    ok &= (props.shear_center_z > 0.0);
 
     SptStressPointArray stress{};
     ok &= expectOk(spt_get_result_stress_points(result, &stress), "get stress");
@@ -75,6 +78,9 @@ bool runApiTests() {
     ok &= (counts.node_count > 0 && counts.triangle_count > 0);
 
     ok &= expectOk(spt_export_results(result, "spt_test_export.csv", SPT_EXPORT_CSV), "export csv");
+    ok &= fileContains("spt_test_export.csv", "Cw,");
+    ok &= fileContains("spt_test_export.csv", "ys,");
+    ok &= fileContains("spt_test_export.csv", "zs,");
     std::remove("spt_test_export.csv");
 
     // ANSYS: SECDATA field order A,Iy,Iz,Iyz,J,CGy,CGz,...
@@ -82,13 +88,15 @@ bool runApiTests() {
     ok &= expectOk(spt_export_results(result, "spt_test_export.mac", SPT_EXPORT_ANSYS), "export ansys");
     ok &= fileContains("spt_test_export.mac", "SECTYPE,1,BEAM,ASEC,SPT_SECTION");
     ok &= fileContains("spt_test_export.mac", "SECOFFSET,BSEC");
-    ok &= fileContains("spt_test_export.mac", "SECDATA,6520");
+    ok &= fileContains("spt_test_export.mac", "SECDATA,6520.00");
+    ok &= fileContains("spt_test_export.mac", "Warping constant Cw");
     std::filesystem::remove("spt_test_export.mac");
 
     // ABAQUS: correct field order (A, I11=Iy, I12=Iyz, I22=Iz, J) + *SECTION POINTS
     ok &= expectOk(spt_export_results(result, "spt_test_export.inp", SPT_EXPORT_ABAQUS), "export abaqus");
     ok &= fileContains("spt_test_export.inp", "*BEAM GENERAL SECTION, SECTION=GENERAL, ELSET=ALL_BEAMS");
-    ok &= fileContains("spt_test_export.inp", "6520");
+    ok &= fileContains("spt_test_export.inp", "6520.00");
+    ok &= fileContains("spt_test_export.inp", "Warping constant Cw");
     ok &= fileContains("spt_test_export.inp", "*SECTION POINTS");
     std::filesystem::remove("spt_test_export.inp");
 
@@ -96,7 +104,8 @@ bool runApiTests() {
     ok &= expectOk(spt_export_results(result, "spt_test_export.mct", SPT_EXPORT_MIDAS_CIVIL), "export midas");
     ok &= fileContains("spt_test_export.mct", "*SECT");
     ok &= fileContains("spt_test_export.mct", "DBUSER");
-    ok &= fileContains("spt_test_export.mct", "6520");
+    ok &= fileContains("spt_test_export.mct", "6520.00");
+    ok &= fileContains("spt_test_export.mct", "Warping constant Cw");
     std::filesystem::remove("spt_test_export.mct");
 
     // Empty-stress-points path: a Canvas section with no plates produces a

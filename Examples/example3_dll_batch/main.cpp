@@ -37,7 +37,10 @@ void runCase(const char* name, SptSectionType type, const SptParameter* values, 
     spt_calculate_section_properties(section, &result);
     SptSectionProperties props{};
     spt_get_result_properties(result, &props);
-    std::cout << name << ": Area=" << props.area << " Jx=" << props.Jx << "\n";
+    std::cout << name << ": Area=" << props.area << " Jx=" << props.Jx
+              << " Cw=" << props.warping_constant
+              << " ys=" << props.shear_center_y
+              << " zs=" << props.shear_center_z << "\n";
     spt_destroy_result(result);
     spt_destroy_section(section);
 }

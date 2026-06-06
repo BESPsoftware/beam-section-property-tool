@@ -114,6 +114,9 @@ void copyProperties(const spt::SectionProperties& source, SptSectionProperties* 
     out->cy = source.cy;
     out->cz = source.cz;
     out->theta = source.theta;
+    out->warping_constant = source.warpingConstant;
+    out->shear_center_y = source.shearCenterY;
+    out->shear_center_z = source.shearCenterZ;
 }
 
 SptStressPoint toApiStressPoint(const spt::StressPoint& source) {

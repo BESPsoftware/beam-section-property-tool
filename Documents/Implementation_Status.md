@@ -1,13 +1,13 @@
 # Implementation Status
 
-Date: 2026-06-02
+Date: 2026-06-06
 
 Repository: `BESPsoftware/beam-section-property-tool`
 
 Current default branch: `main`
 
 Current main commit observed locally:
-`729cf0cfc02368ee16b177258ceed6c5f80ca711`
+Working tree implementation pass on top of `main` (commit hash pending this PR).
 
 Documentation PR #4:
 
@@ -71,18 +71,20 @@ Observed result for that verification:
 - All three examples executed successfully.
 - `git diff --check` reported no whitespace errors.
 
-This status-only update changes documentation only. Its local verification is:
+Current implementation pass local verification on Windows/MSVC core-only path:
 
 ```text
-git diff --check
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 ```
+
+Observed result: CMake configure/build passed and CTest reported `1/1 tests passed`.
 
 ## CI Status
 
 The GitHub Actions workflow `.github/workflows/cmake.yml` builds on
-`ubuntu-latest` and `macos-latest` with `SPT_QT_VERSION=OFF`, runs CTest, and
-executes the three examples. The workflow is configured for pull requests and
-pushes to `main`.
+`ubuntu-latest`, `macos-latest`, and `windows-latest` with `SPT_QT_VERSION=OFF`, runs CTest, and executes the three examples. The Windows job is named `windows-core` and covers the Windows core/API path without requiring Qt on the runner. The workflow is configured for pull requests and pushes to `main`.
 
 Recent CI results:
 
@@ -121,15 +123,23 @@ Prior merged evidence documents:
 - `SectionPropertyTool.dll` and `SectionPropertyTool.lib` generation.
 - Exported C API symbols confirmed with `dumpbin`.
 
-Not reverified during this macOS documentation pass:
+Current status:
 
-- Windows Qt GUI runtime smoke test.
-- Windows Qt deployment with `windeployqt`.
-- Windows end-user runtime behavior outside the documented checks.
+- Windows core/API path is covered by the new `windows-core` CI job.
+- `SectionPropertySmokeTest` provides automated Qt GUI smoke coverage when Qt Widgets and Qt Test are available.
+- Windows Qt deployment with `windeployqt` and final visual inspection still require an interactive Windows machine with Qt 5.15.2 installed.
+
+## Resolved In Current Implementation Pass
+
+- Warping constant and shear center are computed and exported for all section types.
+- Canvas endpoint dragging is implemented in Select/Edit mode with table write-back on release.
+- `SectionPropertySmokeTest` is wired into CTest when Qt Widgets/Test are found.
+- `windows-core` CI job added for Windows core/API coverage.
+- `Documents/Defect_Log.md` added and linked from the documentation index.
 
 ## Remaining Blockers
 
-- Execute the Windows Qt GUI runtime/deployment smoke test.
+- Execute final manual Windows Qt deployment/visual inspection with `windeployqt`; automated coverage exists via `SectionPropertySmokeTest`.
 - Complete ANSYS, ABAQUS, and Midas Civil solver-side acceptance review.
 - Confirm complete crane girder construction rules for non-reference parameter
   sets, or keep the approximate warning behavior as a signed-off limitation.

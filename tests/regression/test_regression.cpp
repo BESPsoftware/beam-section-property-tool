@@ -17,6 +17,22 @@ bool nearValue(const std::string& label, double actual, double expected, double 
     return false;
 }
 
+bool checkCondition(const std::string& label, bool condition) {
+    if (condition) {
+        return true;
+    }
+    std::cerr << label << " condition failed\n";
+    return false;
+}
+
+bool checkRange(const std::string& label, double value, double lower, double upper) {
+    if (value > lower && value < upper) {
+        return true;
+    }
+    std::cerr << label << " expected in (" << lower << ", " << upper << ") actual " << value << "\n";
+    return false;
+}
+
 double scaledTolerance(double expected, double absoluteMinimum) {
     return std::max(absoluteMinimum, std::abs(expected) * 1.0e-6);
 }
@@ -81,6 +97,9 @@ bool runRegressionTests() {
 
     const auto h = calculate(spt::SectionType::HSection, {{"A", 100.0}, {"H", 210.0}, {"e", 20.0}, {"f", 12.0}});
     ok &= checkCommon("H", h.properties, 6520.0, 3363573.33333, 62294333.3333, 654293.333333, 2520.0, 4000.0, 50.0, 125.0);
+    ok &= nearValue("H.Cw", h.properties.warpingConstant, 30083333333.3333, scaledTolerance(30083333333.3333, 1.0));
+    ok &= nearValue("H.ys", h.properties.shearCenterY, h.properties.cy, 1.0e-9);
+    ok &= nearValue("H.zs", h.properties.shearCenterZ, h.properties.cz, 1.0e-9);
     const double hStress[4][2] = {{-6.0, -105.0}, {6.0, -105.0}, {6.0, 105.0}, {-6.0, 105.0}};
     ok &= checkStress("H", h, hStress);
 
@@ -88,6 +107,9 @@ bool runRegressionTests() {
         {"A", 1320.0}, {"B", 1250.0}, {"H", 2600.0}, {"D", 40.0},
         {"E", 16.0}, {"H1", 600.0}, {"D1", 22.0}, {"E1", 16.0}});
     ok &= checkCommon("Box", box.properties, 165040.0, 45222267733.3, 182728101833.0, 106149908037.0, 83200.0, 77500.0, 660.0, 1491.61754726);
+    ok &= nearValue("Box.Cw", box.properties.warpingConstant, 0.0, 1.0e-9);
+    ok &= nearValue("Box.ys", box.properties.shearCenterY, box.properties.cy, 1.0e-9);
+    ok &= nearValue("Box.zs", box.properties.shearCenterZ, box.properties.cz, 1.0e-9);
     const double boxStress[4][2] = {
         {-641.0, -1491.61754726},
         {641.0, -1491.61754726},
@@ -97,6 +119,9 @@ bool runRegressionTests() {
 
     const auto pipe = calculate(spt::SectionType::PipeSection, {{"Do", 1300.0}, {"t", 14.0}});
     ok &= checkCommon("Pipe", pipe.properties, 56561.2341352, 11693978596.2, 11693978596.2, 23387957192.4, 28282.8514351, 28282.8514351, 0.0, 0.0);
+    ok &= nearValue("Pipe.Cw", pipe.properties.warpingConstant, 0.0, 1.0e-9);
+    ok &= nearValue("Pipe.ys", pipe.properties.shearCenterY, pipe.properties.cy, 1.0e-9);
+    ok &= nearValue("Pipe.zs", pipe.properties.shearCenterZ, pipe.properties.cz, 1.0e-9);
     const double pipeStress[4][2] = {{650.0, 0.0}, {0.0, 650.0}, {-650.0, 0.0}, {0.0, -650.0}};
     ok &= checkStress("Pipe", pipe, pipeStress);
 
@@ -110,6 +135,11 @@ bool runRegressionTests() {
     ok &= nearValue("Crane.theta", crane.properties.theta, 0.219326314663, 1.0e-8);
     ok &= nearValue("Crane.Jzo", crane.properties.Jzo, 13099447810.9, scaledTolerance(13099447810.9, 1.0));
     ok &= nearValue("Crane.Jyo", crane.properties.Jyo, 50893877283.7, scaledTolerance(50893877283.7, 1.0));
+    ok &= checkRange("Crane.Cw magnitude", crane.properties.warpingConstant, 1.0e18, 1.0e20);
+    ok &= checkCondition("Crane.ys nonzero offset", std::abs(crane.properties.shearCenterY - crane.properties.cy) > 1.0);
+    ok &= checkCondition("Crane.zs nonzero offset", std::abs(crane.properties.shearCenterZ - crane.properties.cz) > 1.0);
+    ok &= checkCondition("Crane.ys sign", crane.properties.shearCenterY > crane.properties.cy);
+    ok &= checkCondition("Crane.zs sign", crane.properties.shearCenterZ < crane.properties.cz);
     const double craneStress[4][2] = {
         {-735.003614252, -800.46114302},
         {328.884613845, -1037.61476015},
@@ -136,7 +166,7 @@ bool runRegressionTests() {
     ok &= nearValue("CraneScaled.Ay", scaledCrane.properties.Ay, 1654500.75860751, scaledTolerance(1654500.75860751, 0.01));
     ok &= nearValue("CraneScaled.cy", scaledCrane.properties.cy, 1776.80229889757, scaledTolerance(1776.80229889757, 0.01));
     ok &= nearValue("CraneScaled.cz", scaledCrane.properties.cz, 2006.56561610585, scaledTolerance(2006.56561610585, 0.01));
-    ok &= (scaledCrane.diagnostics.size() == 1);
+    ok &= checkCondition("CraneScaled.diagnostics", scaledCrane.diagnostics.size() == 1);
 
     auto nonReferenceCraneBuild = build(spt::SectionType::QuaysideCraneGirder, {
         {"A", 800.0}, {"B", 860.0}, {"G", 1110.0}, {"D", 1180.0}, {"e", 22.0},
@@ -148,12 +178,12 @@ bool runRegressionTests() {
         return false;
     }
     const auto nonReferenceCrane = spt::SectionCalculator::calculate(nonReferenceCraneBuild.model);
-    ok &= (nonReferenceCrane.properties.area > 0.0);
-    ok &= (nonReferenceCrane.properties.Jz > 0.0);
-    ok &= (nonReferenceCrane.properties.Jy > 0.0);
-    ok &= (nonReferenceCrane.properties.Jx > 0.0);
-    ok &= (nonReferenceCrane.stressPoints.size() == 4);
-    ok &= (nonReferenceCrane.diagnostics.size() == 1);
+    ok &= checkCondition("NonReferenceCrane.Area positive", nonReferenceCrane.properties.area > 0.0);
+    ok &= checkCondition("NonReferenceCrane.Jz positive", nonReferenceCrane.properties.Jz > 0.0);
+    ok &= checkCondition("NonReferenceCrane.Jy positive", nonReferenceCrane.properties.Jy > 0.0);
+    ok &= checkCondition("NonReferenceCrane.Jx positive", nonReferenceCrane.properties.Jx > 0.0);
+    ok &= checkCondition("NonReferenceCrane.stress count", nonReferenceCrane.stressPoints.size() == 4);
+    ok &= checkCondition("NonReferenceCrane.diagnostics", nonReferenceCrane.diagnostics.size() == 1);
 
     auto invalidCanvas = spt::SectionBuilder::buildFromCanvasLines({
         {{0.0, 0.0}, {100.0, 0.0}, -5.0, 0, "negative_t"},
@@ -189,9 +219,12 @@ bool runRegressionTests() {
     ok &= nearValue("Canvas.Area", canvas.properties.area, 3600.0, scaledTolerance(3600.0, 0.01));
     ok &= nearValue("Canvas.cy", canvas.properties.cy, 50.0, scaledTolerance(50.0, 0.01));
     ok &= nearValue("Canvas.cz", canvas.properties.cz, 40.0, scaledTolerance(40.0, 0.01));
-    ok &= (canvas.properties.Jz > 0.0);
-    ok &= (canvas.properties.Jy > 0.0);
-    ok &= (canvas.stressPoints.size() == 4);
+    ok &= checkCondition("Canvas.Jz positive", canvas.properties.Jz > 0.0);
+    ok &= checkCondition("Canvas.Jy positive", canvas.properties.Jy > 0.0);
+    ok &= checkCondition("Canvas.Cw positive", canvas.properties.warpingConstant > 0.0);
+    ok &= checkCondition("Canvas.ys offset", std::abs(canvas.properties.shearCenterY - canvas.properties.cy) > 1.0);
+    ok &= checkCondition("Canvas.zs offset", std::abs(canvas.properties.shearCenterZ - canvas.properties.cz) > 1.0);
+    ok &= checkCondition("Canvas.stress count", canvas.stressPoints.size() == 4);
 
     return ok;
 }

@@ -15,8 +15,8 @@ Crane Runway sections.
   four principal stress points.
 - Non-reference crane girder: approximate plate-graph properties, stress-point
   generation, and warning diagnostic coverage.
-- DLL API smoke test: create section, calculate, read properties, read stress
-  points, create mesh, export CSV, ANSYS, ABAQUS, and Midas Civil cards.
+- DLL API smoke test: create section, calculate, read properties including Cw and shear center, read stress points, create mesh, export CSV, ANSYS, ABAQUS, and Midas Civil cards.
+- Qt GUI smoke test: `SectionPropertySmokeTest` constructs the window, switches section types, checks property/stress/mesh tables, and builds the `example2_canvas` U-shape when Qt Widgets/Test are available.
 
 ## Verification Run
 
@@ -77,7 +77,7 @@ Observed results:
   successfully from `build-qt5/Library/bin`.
 - Prior Windows core/API build and `SectionPropertyTool.dll` export
   verification are documented for MSVC and a short build directory.
-- Windows Qt deployment remains unverified.
+- Windows Qt deployment remains manually unverified; automated smoke coverage exists via `SectionPropertySmokeTest`.
 
 ## Tolerances
 
@@ -87,7 +87,7 @@ Observed results:
 
 ## Known Limitations
 
-- GUI automation is manual unless Qt Test is added to the CI environment.
+- Full Windows Qt deployment and visual inspection remain manual, but automated GUI smoke coverage is available through `SectionPropertySmokeTest` when Qt is installed.
 - Crane girder non-reference parameter sets use an approximate plate graph until
   the client confirms full construction rules; these cases emit a warning.
 - FEM card exports write general section/property values for ANSYS, ABAQUS, and
