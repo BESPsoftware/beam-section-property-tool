@@ -8,6 +8,12 @@ out/
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
+build/**/compile_commands.json
+build-*/**/compile_commands.json
+build_*/**/compile_commands.json
+*_build/**/compile_commands.json
+bsp_build/**/compile_commands.json
+cmake-build-*/**/compile_commands.json
 CTestTestfile.cmake
 Testing/
 install_manifest.txt

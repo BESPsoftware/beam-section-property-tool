@@ -4,6 +4,7 @@
 #include "stress/StressPointEngine.h"
 
 #include <cmath>
+#include <set>
 #include <sstream>
 
 namespace spt {
@@ -76,7 +77,27 @@ BuildResult SectionBuilder::buildFromCanvasLines(const std::vector<PlateSegment>
         result.diagnostics.push_back({2001, ErrorSeverity::Warning, "canvas", "Canvas contains no plate segments.", "Draw at least one plate centerline."});
         return result;
     }
+    std::set<std::string> explicitIds;
     for (const auto& line : lines) {
+        if (!line.id.empty()) {
+            explicitIds.insert(line.id);
+        }
+    }
+
+    std::set<std::string> ids;
+    int generatedId = 1;
+    for (const auto& input : lines) {
+        PlateSegment line = input;
+        if (line.id.empty()) {
+            do {
+                line.id = "plate_" + std::to_string(generatedId++);
+            } while (ids.count(line.id) != 0 || explicitIds.count(line.id) != 0);
+        }
+        if (ids.count(line.id) != 0) {
+            result.diagnostics.push_back(error(2004, line.id, "Canvas plate ids must be unique."));
+            continue;
+        }
+        ids.insert(line.id);
         if (line.thickness <= 0.0) {
             result.diagnostics.push_back(error(2002, line.id, "Canvas plate thickness must be positive."));
             continue;
@@ -287,4 +308,3 @@ BuildResult SectionBuilder::buildCrane(const SectionParameters& parameters) {
 }
 
 }  // namespace spt
-

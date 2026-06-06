@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <vector>
 #include <string>
 
 namespace {
@@ -62,6 +63,15 @@ bool checkStress(const std::string& name, const spt::CalculationResult& result, 
         ok &= nearValue(name + ".stress.z0." + std::to_string(i + 1), result.stressPoints[i].principal.z, expected[i][1], scaledTolerance(expected[i][1], 0.01));
     }
     return ok;
+}
+
+bool hasDiagnosticCode(const spt::BuildResult& result, int code) {
+    for (const auto& diagnostic : result.diagnostics) {
+        if (diagnostic.code == code) {
+            return true;
+        }
+    }
+    return false;
 }
 
 }  // namespace
@@ -145,6 +155,43 @@ bool runRegressionTests() {
     ok &= (nonReferenceCrane.stressPoints.size() == 4);
     ok &= (nonReferenceCrane.diagnostics.size() == 1);
 
+    auto invalidCanvas = spt::SectionBuilder::buildFromCanvasLines({
+        {{0.0, 0.0}, {100.0, 0.0}, -5.0, 0, "negative_t"},
+        {{0.0, 0.0}, {0.0, 0.0}, 10.0, 0, "zero_length"},
+        {{0.0, 0.0}, {100.0, 0.0}, 10.0, 0, "duplicate"},
+        {{0.0, 10.0}, {100.0, 10.0}, 10.0, 0, "duplicate"},
+    });
+    ok &= !invalidCanvas.ok();
+    ok &= hasDiagnosticCode(invalidCanvas, 2002);
+    ok &= hasDiagnosticCode(invalidCanvas, 2003);
+    ok &= hasDiagnosticCode(invalidCanvas, 2004);
+
+    auto autoIdCanvas = spt::SectionBuilder::buildFromCanvasLines({
+        {{0.0, 0.0}, {100.0, 0.0}, 10.0, 0, ""},
+        {{0.0, 80.0}, {100.0, 80.0}, 10.0, 0, "plate_1"},
+    });
+    ok &= autoIdCanvas.ok();
+    ok &= (autoIdCanvas.model.plates.size() == 2);
+    ok &= (autoIdCanvas.model.plates[0].id == "plate_2");
+    ok &= (autoIdCanvas.model.plates[1].id == "plate_1");
+
+    auto canvasBuild = spt::SectionBuilder::buildFromCanvasLines({
+        {{0.0, 0.0}, {100.0, 0.0}, 10.0, 0, "bottom"},
+        {{0.0, 80.0}, {100.0, 80.0}, 10.0, 0, "top"},
+        {{0.0, 0.0}, {0.0, 80.0}, 10.0, 0, "left"},
+        {{100.0, 0.0}, {100.0, 80.0}, 10.0, 0, "right"},
+    });
+    if (!canvasBuild.ok()) {
+        std::cerr << "Canvas build failed\n";
+        return false;
+    }
+    const auto canvas = spt::SectionCalculator::calculate(canvasBuild.model);
+    ok &= nearValue("Canvas.Area", canvas.properties.area, 3600.0, scaledTolerance(3600.0, 0.01));
+    ok &= nearValue("Canvas.cy", canvas.properties.cy, 50.0, scaledTolerance(50.0, 0.01));
+    ok &= nearValue("Canvas.cz", canvas.properties.cz, 40.0, scaledTolerance(40.0, 0.01));
+    ok &= (canvas.properties.Jz > 0.0);
+    ok &= (canvas.properties.Jy > 0.0);
+    ok &= (canvas.stressPoints.size() == 4);
+
     return ok;
 }
-
