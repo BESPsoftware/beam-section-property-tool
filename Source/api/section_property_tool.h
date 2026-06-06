@@ -73,6 +73,9 @@ typedef struct SptSectionProperties {
     double cy;
     double cz;
     double theta;
+    double warping_constant;
+    double shear_center_y;
+    double shear_center_z;
 } SptSectionProperties;
 
 typedef struct SptStressPoint {

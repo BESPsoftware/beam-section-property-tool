@@ -139,6 +139,9 @@ typedef struct SptSectionProperties {
     double cy;
     double cz;
     double theta;
+    double warping_constant;
+    double shear_center_y;
+    double shear_center_z;
 } SptSectionProperties;
 
 int spt_get_result_properties(
@@ -152,6 +155,10 @@ Units:
 - `Jz`, `Jy`, `Jyz`, `Jzo`, `Jyo`, `Jx`: mm4.
 - `cy`, `cz`: mm.
 - `theta`: radians.
+- `warping_constant`: mm6.
+- `shear_center_y`, `shear_center_z`: mm.
+
+For closed doubly symmetric sections such as Box and Pipe, `warping_constant = 0.0` is the exact Vlasov value, not a placeholder. H sections use the analytical equal-flange formula; crane girder and Canvas sections use numerical open thin-walled sectorial-area integration.
 
 ## Stress Points
 
@@ -303,6 +310,8 @@ int main(void) {
         printf("Area = %.3f mm2\n", props.area);
         printf("Jz = %.3f mm4\n", props.Jz);
         printf("Jy = %.3f mm4\n", props.Jy);
+        printf("Cw = %.3f mm6\n", props.warping_constant);
+        printf("Shear center = (%.3f, %.3f) mm\n", props.shear_center_y, props.shear_center_z);
     }
 
     spt_export_results(result, "section.csv", SPT_EXPORT_CSV);

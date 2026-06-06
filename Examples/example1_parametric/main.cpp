@@ -44,6 +44,8 @@ int main() {
     std::cout << "Area: " << props.area << " mm2\n";
     std::cout << "Jz: " << props.Jz << " mm4\n";
     std::cout << "Jy: " << props.Jy << " mm4\n";
+    std::cout << "Cw: " << props.warping_constant << " mm6\n";
+    std::cout << "Shear center: (" << props.shear_center_y << ", " << props.shear_center_z << ") mm\n";
     spt_destroy_result(result);
     spt_destroy_section(section);
     pauseConsole();

@@ -144,11 +144,29 @@ All 41 numerical checks pass within the tolerances encoded in the
 regression test suite. Test runner: `SectionPropertyTests` via
 `ctest --output-on-failure` on macOS/AppleClang Release build.
 
+
+## Warping Constant and Shear Center
+
+The regression suite now also checks the computed shear center (`ys`, `zs`)
+and warping constant (`Cw`) fields. These values are not supplied by
+`Test Data.xls`, so analytical formulas or geometry-scaled consistency checks
+are used instead of workbook expected values.
+
+| Section | Shear center | Warping constant | Validation basis |
+|---|---|---|---|
+| H Section | `ys = cy`, `zs = cz` | `Cw = e * A^3 * (H - e)^2 / 24` | Doubly symmetric open I/H section with equal flanges; `(H - e)` is the flange-centroid spacing. |
+| Hollow Box | `ys = cy`, `zs = cz` | `Cw = 0.0` | Doubly symmetric closed box; zero warping constant is the exact Vlasov result for this symmetric closed section. |
+| Pipe | `ys = cy`, `zs = cz` | `Cw = 0.0` | Circular closed section; zero warping constant is exact, not a placeholder. |
+| Quayside Crane Girder | Numerical | Numerical | Open thin-walled Vlasov sectorial-area integration over the plate graph. Regression checks non-zero offsets, signs, and rough magnitude for the reference geometry. |
+| Canvas Thin-Walled | Numerical | Numerical | Same open thin-walled sectorial-area integration over user-supplied plate segments. |
+
+For open thin-walled sections, the implementation orders connected plate
+segments from a free end where available, integrates sectorial area with
+4-point Gauss quadrature, corrects the trial pole from centroid to shear
+center, subtracts the mean sectorial area, and computes `Cw = integral(omega^2 t ds)`.
+
 ## Known limitations
 
-- Warping constant and shear center coordinates are not yet computed
-  (fields exist in `SectionProperties` but are always zero). These are
-  not present in `Test Data.xls` and are not validated here.
 - Crane girder numerical values are calibrated to the single XLS
   reference case; other parameter combinations produce approximate
   results with a diagnostic warning and are covered by regression tests

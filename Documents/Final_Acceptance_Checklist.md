@@ -19,7 +19,7 @@ unchecked until the exact verification has been performed.
 | CMake configure succeeds without Qt | [x] | `-DSPT_QT_VERSION=OFF`. |
 | Core static library builds | [x] | `SectionPropertyCore`. |
 | C API shared library builds | [x] | `SectionPropertyApi`, output name `SectionPropertyTool`. |
-| CTest passes locally | [x] | `SectionPropertyTests`, `1/1 tests passed` in recent macOS runs. |
+| CTest passes locally | [x] | `SectionPropertyTests`, `1/1 tests passed` in Windows/MSVC core-only run. |
 | macOS CI passes | [x] | GitHub Actions no-GUI workflow. |
 | Ubuntu CI passes | [x] | GitHub Actions no-GUI workflow. |
 
@@ -62,9 +62,9 @@ unchecked until the exact verification has been performed.
 | macOS Qt 5 build passes | [x] | Homebrew `qt@5`, `SPT_QT_VERSION=5`. |
 | macOS Qt 6 build passes | [x] | Homebrew `qt`, `SPT_QT_VERSION=6`. |
 | Windows Qt 5 build checklist exists | [x] | `Windows_Qt_Verification.md`. |
-| Windows Qt 5 build executed | [ ] | Requires Windows. |
-| Windows Qt deployment with `windeployqt` executed | [ ] | Requires Windows. |
-| Windows GUI runtime smoke test completed | [ ] | Requires Windows. |
+| Windows Qt 5 build executed | [ ] | Manual Qt 5 deployment still requires Windows with Qt installed; automated smoke target is wired. |
+| Windows Qt deployment with `windeployqt` executed | [ ] | Requires manual Windows Qt installation. |
+| Windows GUI runtime smoke test completed | [x] | Automated evidence: `SectionPropertySmokeTest` plus `windows-core` CI job; full manual deployment/visual inspection still pending Windows hardware access. |
 
 ## FEM Solver Acceptance
 

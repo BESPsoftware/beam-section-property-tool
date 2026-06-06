@@ -49,6 +49,9 @@ QString unitForProperty(const QString& name) {
     if (name == "Area" || name == "Az" || name == "Ay") {
         return "mm2";
     }
+    if (name == "Cw") {
+        return "mm6";
+    }
     if (name.startsWith("J")) {
         return "mm4";
     }
@@ -187,6 +190,14 @@ public:
         plateSelectedHandler_ = std::move(handler);
     }
 
+    void setEndpointProvider(std::function<std::vector<std::pair<int, spt::PlateSegment>>()> provider) {
+        endpointProvider_ = std::move(provider);
+    }
+
+    void setEndpointMovedHandler(std::function<void(int, bool, spt::PointYZ, bool)> handler) {
+        endpointMovedHandler_ = std::move(handler);
+    }
+
     void setShowGrid(bool show) {
         showGrid_ = show;
         viewport()->update();
@@ -198,6 +209,7 @@ public:
 
     void cancelDrawing() {
         drawing_ = false;
+        draggingEndpoint_ = false;
         removePreviewLine();
     }
 
@@ -250,6 +262,42 @@ protected:
         }
 
         if (tool_ == CanvasTool::Select && event->button() == Qt::LeftButton) {
+            const QPointF scenePoint = mapToScene(event->pos());
+            if (endpointProvider_ && endpointMovedHandler_) {
+                const double radiusScene = 8.0 / std::max(1.0e-9, std::abs(transform().m11()));
+                const double radius2 = radiusScene * radiusScene;
+                int bestRow = -1;
+                bool bestIsStart = true;
+                double bestDistance2 = radius2;
+                for (const auto& item : endpointProvider_()) {
+                    const QPointF start = toQt(item.second.start);
+                    const QPointF end = toQt(item.second.end);
+                    const double ds = QLineF(scenePoint, start).length();
+                    const double de = QLineF(scenePoint, end).length();
+                    if (ds * ds <= bestDistance2) {
+                        bestDistance2 = ds * ds;
+                        bestRow = item.first;
+                        bestIsStart = true;
+                    }
+                    if (de * de <= bestDistance2) {
+                        bestDistance2 = de * de;
+                        bestRow = item.first;
+                        bestIsStart = false;
+                    }
+                }
+                if (bestRow >= 0) {
+                    draggingEndpoint_ = true;
+                    dragRow_ = bestRow;
+                    dragStartEndpoint_ = bestIsStart;
+                    if (plateSelectedHandler_) {
+                        plateSelectedHandler_(bestRow);
+                    }
+                    endpointMovedHandler_(dragRow_, dragStartEndpoint_, fromQt(snapPoint(scenePoint)), false);
+                    event->accept();
+                    return;
+                }
+            }
+
             QGraphicsItem* item = itemAt(event->pos());
             while (item && !item->data(0).isValid()) {
                 item = item->parentItem();
@@ -267,12 +315,30 @@ protected:
     }
 
     void mouseMoveEvent(QMouseEvent* event) override {
+        if (tool_ == CanvasTool::Select && draggingEndpoint_ && endpointMovedHandler_) {
+            endpointMovedHandler_(dragRow_, dragStartEndpoint_, fromQt(snapPoint(mapToScene(event->pos()))), false);
+            event->accept();
+            return;
+        }
         if (tool_ == CanvasTool::DrawPlate && drawing_ && previewLine_) {
             previewLine_->setLine(QLineF(drawStart_, snapPoint(mapToScene(event->pos()))));
             event->accept();
             return;
         }
         ZoomableGraphicsView::mouseMoveEvent(event);
+    }
+
+    void mouseReleaseEvent(QMouseEvent* event) override {
+        if (tool_ == CanvasTool::Select && draggingEndpoint_ && event->button() == Qt::LeftButton) {
+            if (endpointMovedHandler_) {
+                endpointMovedHandler_(dragRow_, dragStartEndpoint_, fromQt(snapPoint(mapToScene(event->pos()))), true);
+            }
+            draggingEndpoint_ = false;
+            dragRow_ = -1;
+            event->accept();
+            return;
+        }
+        ZoomableGraphicsView::mouseReleaseEvent(event);
     }
 
     void keyPressEvent(QKeyEvent* event) override {
@@ -306,13 +372,18 @@ private:
 
     CanvasTool tool_ = CanvasTool::Select;
     bool drawing_ = false;
+    bool draggingEndpoint_ = false;
     bool showGrid_ = true;
     bool snapToGrid_ = false;
     double gridSpacing_ = 25.0;
     QPointF drawStart_;
+    int dragRow_ = -1;
+    bool dragStartEndpoint_ = true;
     QGraphicsLineItem* previewLine_ = nullptr;
     std::function<void(spt::PointYZ, spt::PointYZ)> plateDrawnHandler_;
     std::function<void(int)> plateSelectedHandler_;
+    std::function<std::vector<std::pair<int, spt::PlateSegment>>()> endpointProvider_;
+    std::function<void(int, bool, spt::PointYZ, bool)> endpointMovedHandler_;
 };
 
 QWidget* buildViewPanel(ZoomableGraphicsView* view) {
@@ -358,6 +429,16 @@ public:
         recalculate();
     }
 
+    QComboBox* sectionTypeComboForTest() const { return typeCombo_; }
+    QTableWidget* parameterTableForTest() const { return parameterTable_; }
+    QTableWidget* propertyTableForTest() const { return propertyTable_; }
+    QTableWidget* stressTableForTest() const { return stressTable_; }
+    QTableWidget* canvasTableForTest() const { return canvasTable_; }
+    QGraphicsScene* meshSceneForTest() const { return meshScene_; }
+    void clearCanvasForTest() { clearCanvasPlates(); }
+    void addCanvasPlateForTest(const spt::PlateSegment& plate) { insertCanvasPlate(plate, false); }
+    void buildCanvasSectionForTest() { buildCanvasSection(); }
+
 private:
     QTabWidget* tabs_ = nullptr;
     QComboBox* typeCombo_ = nullptr;
@@ -397,6 +478,7 @@ private:
         });
 
         parameterTable_ = new QTableWidget;
+        parameterTable_->setObjectName("parameterTable");
         parameterTable_->setColumnCount(3);
         parameterTable_->setHorizontalHeaderLabels({"Name", "Value", "Unit"});
         parameterTable_->horizontalHeader()->setStretchLastSection(true);
@@ -407,6 +489,7 @@ private:
         });
 
         propertyTable_ = new QTableWidget;
+        propertyTable_->setObjectName("propertyTable");
         propertyTable_->setColumnCount(3);
         propertyTable_->setHorizontalHeaderLabels({"Name", "Value", "Unit"});
         propertyTable_->horizontalHeader()->setStretchLastSection(true);
@@ -438,6 +521,7 @@ private:
         auto* page = new QWidget;
         auto* layout = new QGridLayout(page);
         stressTable_ = new QTableWidget;
+        stressTable_->setObjectName("stressTable");
         stressTable_->setColumnCount(5);
         stressTable_->setHorizontalHeaderLabels({"ID", "y", "z", "y0", "z0"});
         stressTable_->horizontalHeader()->setStretchLastSection(true);
@@ -486,6 +570,7 @@ private:
         leftLayout->setContentsMargins(0, 0, 0, 0);
 
         canvasTable_ = new QTableWidget;
+        canvasTable_->setObjectName("canvasTable");
         canvasTable_->setColumnCount(6);
         canvasTable_->setHorizontalHeaderLabels({"y1", "z1", "y2", "z2", "t", "id"});
         canvasTable_->horizontalHeader()->setStretchLastSection(true);
@@ -547,6 +632,12 @@ private:
         });
         canvasView_->setPlateSelectedHandler([this](int row) {
             selectCanvasRow(row);
+        });
+        canvasView_->setEndpointProvider([this] {
+            return canvasEndpointPlates();
+        });
+        canvasView_->setEndpointMovedHandler([this](int row, bool startEndpoint, spt::PointYZ point, bool commit) {
+            moveCanvasEndpoint(row, startEndpoint, point, commit);
         });
 
         auto* selectMode = new QPushButton("Select/Edit");
@@ -695,6 +786,34 @@ private:
         const QString id = canvasCellText(row, 5);
         plate.id = id.isEmpty() ? QString("row_%1").arg(row + 1).toStdString() : id.toStdString();
         return true;
+    }
+
+    std::vector<std::pair<int, spt::PlateSegment>> canvasEndpointPlates() const {
+        std::vector<std::pair<int, spt::PlateSegment>> plates;
+        for (int row = 0; row < canvasTable_->rowCount(); ++row) {
+            spt::PlateSegment plate;
+            if (readCanvasPlateForDisplay(row, plate)) {
+                plates.push_back({row, plate});
+            }
+        }
+        return plates;
+    }
+
+    void moveCanvasEndpoint(int row, bool startEndpoint, spt::PointYZ point, bool commit) {
+        if (row < 0 || row >= canvasTable_->rowCount()) {
+            return;
+        }
+        selectedCanvasRow_ = row;
+        if (!commit) {
+            const QSignalBlocker blocker(canvasTable_);
+            setCanvasCell(row, startEndpoint ? 0 : 2, formatCanvasNumber(point.y));
+            setCanvasCell(row, startEndpoint ? 1 : 3, formatCanvasNumber(point.z));
+            redrawCanvasScene();
+            return;
+        }
+        setCanvasCell(row, startEndpoint ? 0 : 2, formatCanvasNumber(point.y));
+        setCanvasCell(row, startEndpoint ? 1 : 3, formatCanvasNumber(point.z));
+        redrawCanvasScene();
     }
 
     std::vector<spt::PlateSegment> collectCanvasPlatesForBuild(QStringList& errors) {
@@ -991,7 +1110,8 @@ private:
             const int row = propertyTable_->rowCount();
             propertyTable_->insertRow(row);
             propertyTable_->setItem(row, 0, new QTableWidgetItem(name));
-            propertyTable_->setItem(row, 1, new QTableWidgetItem(QString::number(value, 'f', 2)));
+            const int decimals = (name.startsWith("J") || name == "Cw") ? 4 : 2;
+            propertyTable_->setItem(row, 1, new QTableWidgetItem(QString::number(value, 'f', decimals)));
             propertyTable_->setItem(row, 2, new QTableWidgetItem(unitForProperty(name)));
         };
         const auto& p = result_.properties;
@@ -1007,6 +1127,9 @@ private:
         add("cy", p.cy);
         add("cz", p.cz);
         add("theta", p.theta);
+        add("Cw", p.warpingConstant);
+        add("ys", p.shearCenterY);
+        add("zs", p.shearCenterZ);
         propertyTable_->blockSignals(false);
     }
 
@@ -1089,9 +1212,11 @@ private:
 
 }  // namespace
 
+#ifndef SPT_GUI_NO_MAIN
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
     CrossSectionWindow window;
     window.show();
     return app.exec();
 }
+#endif

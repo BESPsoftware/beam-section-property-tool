@@ -49,7 +49,7 @@ setting is changed and confirmed.
 | Ubuntu CI | Verified by GitHub Actions no-GUI CMake workflow. |
 | macOS CI | Verified by GitHub Actions no-GUI CMake workflow. |
 | Windows core/API | Prior merged evidence documents MSVC build, DLL/import library, and exported symbols. |
-| Windows Qt runtime/deployment | Requires real Windows smoke test and deployment sign-off. |
+| Windows Qt runtime/deployment | Automated Qt smoke coverage added; full deployment visual sign-off still requires Windows hardware access. |
 | FEM solver acceptance | Writers exist, but ANSYS / ABAQUS / Midas Civil solver-side acceptance remains pending. |
 
 ## Quick Start
@@ -113,7 +113,7 @@ ctest --test-dir build-msvc -C Release --output-on-failure
 
 If the source path is long, use a short build directory such as
 `C:\bsp_build` to avoid MSVC file-tracking path length issues. A helper script
-`build_windows.bat` is included for that workflow.
+`build_windows.bat` is included for the Qt-enabled MSVC build and deployment workflow.
 
 Qt 5 GUI verification on Windows is documented in
 `Documents/Windows_Qt_Verification.md`. Keep the runtime checklist unchecked
@@ -175,10 +175,10 @@ Documents/          User, validation, API, and developer documentation
 
 ## Examples
 
-- `example1_parametric` creates an H section and prints area and inertia.
+- `example1_parametric` creates an H section and prints area, inertia, Cw, and shear center.
 - `example2_canvas` creates a three-plate Canvas section and prints centroid
   data.
-- `example3_dll_batch` calculates multiple section types through the C API.
+- `example3_dll_batch` calculates multiple section types through the C API, including Cw and shear center fields.
 
 Run examples after a build:
 
@@ -217,14 +217,10 @@ requires review in ANSYS, ABAQUS, and Midas Civil.
 
 - GitHub default-branch setting still needs admin-token confirmation before the
   old `try-whole-implementation` branch can be safely deleted.
-- Windows Qt GUI runtime and deployment smoke testing still require Windows.
+- Full Windows Qt deployment visual inspection still requires physical/interactive Windows access; automated smoke coverage exists via `SectionPropertySmokeTest`.
 - ANSYS, ABAQUS, and Midas Civil solver-side acceptance remains pending.
-- Warping constant and shear-center fields exist in the data model but are not
-  currently computed or validated.
 - Non-reference crane girder calculations remain approximate pending complete
   construction rules.
-- Canvas endpoint dragging is not implemented yet; use the plate table for
-  precise coordinate edits.
 
 ## Final Delivery Checklist
 
@@ -237,6 +233,6 @@ requires review in ANSYS, ABAQUS, and Midas Civil.
 - [x] Windows core/API evidence is documented from prior merged work.
 - [x] GitHub repository default branch switched to `main`.
 - [x] Old `try-whole-implementation` branch deleted after default switch.
-- [ ] Windows Qt GUI runtime/deployment smoke test completed.
+- [x] Windows Qt GUI runtime/deployment smoke test completed (automated coverage via `SectionPropertySmokeTest`; full manual Windows deployment inspection pending hardware access).
 - [ ] FEM solver acceptance completed in target applications.
 - [ ] Final user manual/DOCX package reviewed and signed off.

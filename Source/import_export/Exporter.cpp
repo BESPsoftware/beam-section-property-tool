@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <sstream>
 
 #if defined(_WIN32)
 #  include <windows.h>
@@ -32,7 +33,8 @@ std::wstring utf8ToWide(const std::string& utf8) {
 
 std::ofstream openOutputFile(const std::string& path) {
 #if defined(_WIN32)
-    return std::ofstream(utf8ToWide(path));
+    const std::wstring widePath = utf8ToWide(path);
+    return std::ofstream(widePath.c_str());
 #else
     return std::ofstream(path);
 #endif
@@ -44,8 +46,22 @@ void setFileError(ErrorInfo* error, const std::string& path) {
     }
 }
 
-void writePropertyJson(std::ostream& os, const char* name, double value, bool comma = true) {
-    os << "    \"" << name << "\": " << std::setprecision(15) << value;
+std::string formatValue(double value, int precision) {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(precision) << value;
+    return ss.str();
+}
+
+std::string format2(double value) {
+    return formatValue(value, 2);
+}
+
+std::string format6(double value) {
+    return formatValue(value, 6);
+}
+
+void writePropertyJson(std::ostream& os, const char* name, double value, int precision, bool comma = true) {
+    os << "    \"" << name << "\": " << formatValue(value, precision);
     if (comma) {
         os << ",";
     }
@@ -106,22 +122,25 @@ bool Exporter::exportCsv(const CalculationResult& result, const std::string& pat
     }
     const auto& p = result.properties;
     os << "property,value,unit\n";
-    os << "Area," << std::setprecision(15) << p.area << ",mm2\n";
-    os << "Jz," << p.Jz << ",mm4\n";
-    os << "Jy," << p.Jy << ",mm4\n";
-    os << "Jyz," << p.Jyz << ",mm4\n";
-    os << "Jzo," << p.Jzo << ",mm4\n";
-    os << "Jyo," << p.Jyo << ",mm4\n";
-    os << "Jx," << p.Jx << ",mm4\n";
-    os << "Az," << p.Az << ",mm2\n";
-    os << "Ay," << p.Ay << ",mm2\n";
-    os << "cy," << p.cy << ",mm\n";
-    os << "cz," << p.cz << ",mm\n";
-    os << "theta," << p.theta << ",rad\n";
+    os << "Area," << format2(p.area) << ",mm2\n";
+    os << "Jz," << format6(p.Jz) << ",mm4\n";
+    os << "Jy," << format6(p.Jy) << ",mm4\n";
+    os << "Jyz," << format6(p.Jyz) << ",mm4\n";
+    os << "Jzo," << format6(p.Jzo) << ",mm4\n";
+    os << "Jyo," << format6(p.Jyo) << ",mm4\n";
+    os << "Jx," << format6(p.Jx) << ",mm4\n";
+    os << "Az," << format2(p.Az) << ",mm2\n";
+    os << "Ay," << format2(p.Ay) << ",mm2\n";
+    os << "cy," << format2(p.cy) << ",mm\n";
+    os << "cz," << format2(p.cz) << ",mm\n";
+    os << "theta," << format2(p.theta) << ",rad\n";
+    os << "Cw," << format6(p.warpingConstant) << ",mm6\n";
+    os << "ys," << format2(p.shearCenterY) << ",mm\n";
+    os << "zs," << format2(p.shearCenterZ) << ",mm\n";
     os << "\nstress_id,label,y,z,y0,z0,source,validity\n";
     for (const auto& sp : result.stressPoints) {
-        os << sp.id << "," << sp.label << "," << sp.global.y << "," << sp.global.z << ","
-           << sp.principal.y << "," << sp.principal.z << ","
+        os << sp.id << "," << sp.label << "," << format2(sp.global.y) << "," << format2(sp.global.z) << ","
+           << format2(sp.principal.y) << "," << format2(sp.principal.z) << ","
            << (sp.source == StressPointSource::Default ? "Default" : "User") << ","
            << static_cast<int>(sp.validity) << "\n";
     }
@@ -137,24 +156,28 @@ bool Exporter::exportJson(const CalculationResult& result, const std::string& pa
     const auto& p = result.properties;
     os << "{\n";
     os << "  \"properties\": {\n";
-    writePropertyJson(os, "Area", p.area);
-    writePropertyJson(os, "Jz", p.Jz);
-    writePropertyJson(os, "Jy", p.Jy);
-    writePropertyJson(os, "Jyz", p.Jyz);
-    writePropertyJson(os, "Jzo", p.Jzo);
-    writePropertyJson(os, "Jyo", p.Jyo);
-    writePropertyJson(os, "Jx", p.Jx);
-    writePropertyJson(os, "Az", p.Az);
-    writePropertyJson(os, "Ay", p.Ay);
-    writePropertyJson(os, "cy", p.cy);
-    writePropertyJson(os, "cz", p.cz);
-    writePropertyJson(os, "theta", p.theta, false);
+    writePropertyJson(os, "Area", p.area, 2);
+    writePropertyJson(os, "Jz", p.Jz, 6);
+    writePropertyJson(os, "Jy", p.Jy, 6);
+    writePropertyJson(os, "Jyz", p.Jyz, 6);
+    writePropertyJson(os, "Jzo", p.Jzo, 6);
+    writePropertyJson(os, "Jyo", p.Jyo, 6);
+    writePropertyJson(os, "Jx", p.Jx, 6);
+    writePropertyJson(os, "Az", p.Az, 2);
+    writePropertyJson(os, "Ay", p.Ay, 2);
+    writePropertyJson(os, "cy", p.cy, 2);
+    writePropertyJson(os, "cz", p.cz, 2);
+    writePropertyJson(os, "theta", p.theta, 2);
+    writePropertyJson(os, "warpingConstant", p.warpingConstant, 6);
+    writePropertyJson(os, "shearCenterY", p.shearCenterY, 2);
+    writePropertyJson(os, "shearCenterZ", p.shearCenterZ, 2, false);
     os << "  },\n";
     os << "  \"stressPoints\": [\n";
     for (std::size_t i = 0; i < result.stressPoints.size(); ++i) {
         const auto& sp = result.stressPoints[i];
-        os << "    {\"id\":" << sp.id << ",\"label\":\"" << sp.label << "\",\"y\":" << sp.global.y
-           << ",\"z\":" << sp.global.z << ",\"y0\":" << sp.principal.y << ",\"z0\":" << sp.principal.z << "}";
+        os << "    {\"id\":" << sp.id << ",\"label\":\"" << sp.label << "\",\"y\":" << format2(sp.global.y)
+           << ",\"z\":" << format2(sp.global.z) << ",\"y0\":" << format2(sp.principal.y)
+           << ",\"z0\":" << format2(sp.principal.z) << "}";
         os << (i + 1 == result.stressPoints.size() ? "\n" : ",\n");
     }
     os << "  ],\n";
@@ -171,7 +194,6 @@ bool Exporter::exportAnsys(const CalculationResult& result, const std::string& p
         return false;
     }
     const auto& p = result.properties;
-    os << std::setprecision(15);
     // ANSYS Mechanical APDL -- BEAM188/BEAM189 arbitrary cross-section (ASEC).
     // SECDATA field order: A, Iy, Iz, Iyz, J, CGy, CGz, SHy, SHz, TKZ, TKY
     //   A          cross-sectional area
@@ -196,27 +218,30 @@ bool Exporter::exportAnsys(const CalculationResult& result, const std::string& p
     const double tkz = (p.area > 0.0) ? p.Az / p.area : 0.0;
     const double tky = (p.area > 0.0) ? p.Ay / p.area : 0.0;
     os << "SECDATA,"
-       << p.area << ","   // A
-       << p.Jy   << ","   // Iy
-       << p.Jz   << ","   // Iz
-       << p.Jyz  << ","   // Iyz
-       << p.Jx   << ","   // J
-       << p.cy   << ","   // CGy
-       << p.cz   << ","   // CGz
-       << 0.0    << ","   // SHy (shear centre not yet computed)
-       << 0.0    << ","   // SHz
-       << tkz    << ","   // TKZ = Az/A
-       << tky    << "\n"; // TKY = Ay/A
+       << format2(p.area) << ","   // A
+       << format6(p.Jy)   << ","   // Iy
+       << format6(p.Jz)   << ","   // Iz
+       << format6(p.Jyz)  << ","   // Iyz
+       << format6(p.Jx)   << ","   // J
+       << format2(p.cy)   << ","   // CGy
+       << format2(p.cz)   << ","   // CGz
+       << format2(p.shearCenterY - p.cy) << ","   // SHy
+       << format2(p.shearCenterZ - p.cz) << ","   // SHz
+       << format2(tkz)    << ","   // TKZ = Az/A
+       << format2(tky)    << "\n"; // TKY = Ay/A
     os << "!\n";
-    os << "! Principal axes: theta=" << p.theta << " rad"
-       << "  Jzo=" << p.Jzo << " mm4"
-       << "  Jyo=" << p.Jyo << " mm4\n";
+    os << "! Principal axes: theta=" << format2(p.theta) << " rad"
+       << "  Jzo=" << format6(p.Jzo) << " mm4"
+       << "  Jyo=" << format6(p.Jyo) << " mm4\n";
+    os << "! Warping constant Cw = " << format6(p.warpingConstant)
+       << " mm6   Shear center ys=" << format2(p.shearCenterY)
+       << " zs=" << format2(p.shearCenterZ) << " mm\n";
     if (!result.stressPoints.empty()) {
         os << "!\n";
         os << "! Stress recovery points (global Y-Z, mm):\n";
         for (const auto& sp : result.stressPoints) {
             os << "!   Point " << sp.id << " (" << sp.label << ")"
-               << "  y=" << sp.global.y << "  z=" << sp.global.z << "\n";
+               << "  y=" << format2(sp.global.y) << "  z=" << format2(sp.global.z) << "\n";
         }
     }
     return true;
@@ -229,7 +254,6 @@ bool Exporter::exportAbaqus(const CalculationResult& result, const std::string& 
         return false;
     }
     const auto& p = result.properties;
-    os << std::setprecision(15);
     // ABAQUS *BEAM GENERAL SECTION, SECTION=GENERAL
     // Data line: A, I11, I12, I22, J
     //   A    cross-sectional area
@@ -242,20 +266,23 @@ bool Exporter::exportAbaqus(const CalculationResult& result, const std::string& 
     os << "** Generated by SectionPropertyTool\n";
     os << "** Units match model input (mm, mm2, mm4)\n";
     os << "**\n";
-    os << "** Centroid: (" << p.cy << ", " << p.cz << ") mm"
-       << "   theta=" << p.theta << " rad\n";
+    os << "** Centroid: (" << format2(p.cy) << ", " << format2(p.cz) << ") mm"
+       << "   theta=" << format2(p.theta) << " rad\n";
+    os << "** Warping constant Cw = " << format6(p.warpingConstant)
+       << " mm6   Shear center ys=" << format2(p.shearCenterY)
+       << " zs=" << format2(p.shearCenterZ) << " mm\n";
     os << "**\n";
     os << "*BEAM GENERAL SECTION, SECTION=GENERAL, ELSET=ALL_BEAMS\n";
-    os << p.area << ", "  // A
-       << p.Jy   << ", "  // I11 = Iy
-       << p.Jyz  << ", "  // I12 = Iyz
-       << p.Jz   << ", "  // I22 = Iz
-       << p.Jx   << "\n"; // J
+    os << format2(p.area) << ", "  // A
+       << format6(p.Jy)   << ", "  // I11 = Iy
+       << format6(p.Jyz)  << ", "  // I12 = Iyz
+       << format6(p.Jz)   << ", "  // I22 = Iz
+       << format6(p.Jx)   << "\n"; // J
     if (!result.stressPoints.empty()) {
         os << "**\n";
         os << "*SECTION POINTS\n";
         for (const auto& sp : result.stressPoints) {
-            os << sp.global.y << ", " << sp.global.z << "\n";
+            os << format2(sp.global.y) << ", " << format2(sp.global.z) << "\n";
         }
     }
     return true;
@@ -268,7 +295,6 @@ bool Exporter::exportMidasCivil(const CalculationResult& result, const std::stri
         return false;
     }
     const auto& p = result.properties;
-    os << std::setprecision(15);
     // Midas Civil MCT (Midas Civil Text) -- DBUSER (user-defined) section.
     // *SECT header line:  iSECT, DBUSER, Name, iREFD, bSD, CY, CZ
     // Data line:          Area, Asy, Asz, Ixx, Iyy, Izz
@@ -281,25 +307,28 @@ bool Exporter::exportMidasCivil(const CalculationResult& result, const std::stri
     os << "; Generated by SectionPropertyTool\n";
     os << "; Units match model input (mm, mm2, mm4)\n";
     os << ";\n";
-    os << "; Centroid: CY=" << p.cy << "  CZ=" << p.cz << " mm\n";
-    os << "; theta=" << p.theta << " rad"
-       << "   Iyz=" << p.Jyz << " mm4\n";
+    os << "; Centroid: CY=" << format2(p.cy) << "  CZ=" << format2(p.cz) << " mm\n";
+    os << "; theta=" << format2(p.theta) << " rad"
+       << "   Iyz=" << format6(p.Jyz) << " mm4\n";
+    os << "; Warping constant Cw = " << format6(p.warpingConstant)
+       << " mm6   Shear center ys=" << format2(p.shearCenterY)
+       << " zs=" << format2(p.shearCenterZ) << " mm\n";
     os << ";\n";
     os << "*SECT\n";
-    os << "   1, DBUSER, SPT_SECTION, 0, 0, " << p.cy << ", " << p.cz << "\n";
+    os << "   1, DBUSER, SPT_SECTION, 0, 0, " << format2(p.cy) << ", " << format2(p.cz) << "\n";
     os << "   "
-       << p.area << ", "  // Area
-       << p.Ay   << ", "  // Asy
-       << p.Az   << ", "  // Asz
-       << p.Jx   << ", "  // Ixx (torsional)
-       << p.Jy   << ", "  // Iyy
-       << p.Jz   << "\n"; // Izz
+       << format2(p.area) << ", "  // Area
+       << format2(p.Ay)   << ", "  // Asy
+       << format2(p.Az)   << ", "  // Asz
+       << format6(p.Jx)   << ", "  // Ixx (torsional)
+       << format6(p.Jy)   << ", "  // Iyy
+       << format6(p.Jz)   << "\n"; // Izz
     if (!result.stressPoints.empty()) {
         os << ";\n";
         os << "; Stress output points (global Y-Z, mm):\n";
         for (const auto& sp : result.stressPoints) {
             os << ";   Point " << sp.id << " (" << sp.label << ")"
-               << "  y=" << sp.global.y << "  z=" << sp.global.z << "\n";
+               << "  y=" << format2(sp.global.y) << "  z=" << format2(sp.global.z) << "\n";
         }
     }
     return true;
