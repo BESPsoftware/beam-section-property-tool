@@ -1,0 +1,928 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Length 5702 >>
+stream
+BT /F2 20.00 Tf 48.00 789.89 Td (Beam Element Section Property Tool - Final Report) Tj ET
+0.550 G 0.80 w 48.00 767.89 m 547.28 767.89 l S 0 G
+BT /F1 10.00 Tf 48.00 749.89 Td (Subtitle: Functional engineering software deliverable for beam cross-section property calculation) Tj ET
+BT /F1 10.00 Tf 48.00 736.09 Td (Repository: https://github.com/BESPsoftware/beam-section-property-tool Technology stack: C++17,) Tj ET
+BT /F1 10.00 Tf 48.00 722.29 Td (CMake, C-compatible shared library, optional Qt Widgets GUI, CTest, GitHub Actions Final report) Tj ET
+BT /F1 10.00 Tf 48.00 708.49 Td (date: 2026-06-08 Deliverable status: Core/API implementation complete for the documented scope;) Tj ET
+BT /F1 10.00 Tf 48.00 694.69 Td (external/manual validation items identified separately Submission context: Academic/professional) Tj ET
+BT /F1 10.00 Tf 48.00 680.89 Td (software project submission Team/course: Not specified in the repository package) Tj ET
+0.650 G 0.60 w 48.00 658.09 m 547.28 658.09 l S 0 G
+BT /F2 15.00 Tf 48.00 638.09 Td (1. Executive Summary) Tj ET
+BT /F1 10.00 Tf 48.00 617.09 Td (Beam Element Section Property Tool is a C++17 engineering software project for modelling beam) Tj ET
+BT /F1 10.00 Tf 48.00 603.29 Td (cross-sections and calculating section properties used in structural and finite-element workflows.) Tj ET
+BT /F1 10.00 Tf 48.00 589.49 Td (It supports predefined parametric sections, user-defined thin-walled plate sections, stress output) Tj ET
+BT /F1 10.00 Tf 48.00 575.69 Td (locations, lightweight mesh visualization, and result export for downstream review.) Tj ET
+BT /F1 10.00 Tf 48.00 556.89 Td (The project deliverable includes a reusable calculation core, a C-compatible shared-library API, an) Tj ET
+BT /F1 10.00 Tf 48.00 543.09 Td (optional Qt Widgets GUI, example programs, CMake build configuration, Windows build/deployment) Tj ET
+BT /F1 10.00 Tf 48.00 529.29 Td (support, automated tests, numerical validation material, and user/developer documentation. The same) Tj ET
+BT /F1 10.00 Tf 48.00 515.49 Td (calculation and data-model layers are used by the API and GUI, so interactive and programmatic) Tj ET
+BT /F1 10.00 Tf 48.00 501.69 Td (workflows are built on the same core implementation.) Tj ET
+BT /F1 10.00 Tf 48.00 482.89 Td (The verified local no-GUI build performed for this report completed successfully. CMake configured) Tj ET
+BT /F1 10.00 Tf 48.00 469.09 Td (the core/API build, the project built successfully, CTest executed the aggregated core/API) Tj ET
+BT /F1 10.00 Tf 48.00 455.29 Td (regression target successfully, all three example programs ran, and git diff --check reported no) Tj ET
+BT /F1 10.00 Tf 48.00 441.49 Td (whitespace issues.) Tj ET
+BT /F1 10.00 Tf 48.00 422.69 Td (Remaining work is bounded as validation and hardening rather than missing core implementation:) Tj ET
+BT /F1 10.00 Tf 48.00 408.89 Td (manual Windows Qt deployment and visual inspection, solver-side acceptance of ANSYS/ABAQUS/Midas) Tj ET
+BT /F1 10.00 Tf 48.00 395.09 Td (Civil outputs, confirmation or formal sign-off of arbitrary non-reference crane girder construction) Tj ET
+BT /F1 10.00 Tf 48.00 381.29 Td (rules, final DOCX manual review, and small documentation maintenance tasks.) Tj ET
+BT /F2 15.00 Tf 48.00 354.49 Td (2. Project Scope and Objectives) Tj ET
+BT /F1 10.00 Tf 48.00 333.49 Td (The tool addresses a common engineering software need: computing cross-section properties of beam) Tj ET
+BT /F1 10.00 Tf 48.00 319.69 Td (elements from consistent geometric inputs. These properties support structural review, stress) Tj ET
+BT /F1 10.00 Tf 48.00 305.89 Td (recovery workflows, and finite-element model preparation. The project focuses on reproducible) Tj ET
+BT /F1 10.00 Tf 48.00 292.09 Td (section-property calculation and integration surfaces rather than a full structural solver.) Tj ET
+BT /F1 10.00 Tf 48.00 273.29 Td (The intended users are:) Tj ET
+BT /F1 9.80 Tf 48.00 254.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 254.49 Td (Engineers and evaluators who need section properties and stress output points for common beam) Tj ET
+BT /F1 9.80 Tf 63.00 241.29 Td (section geometries.) Tj ET
+BT /F1 9.80 Tf 48.00 227.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 227.09 Td (Users who need to define thin-walled plate sections interactively through a Canvas workflow.) Tj ET
+BT /F1 9.80 Tf 48.00 212.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 212.89 Td (Developers or automation scripts that need a C-compatible shared-library API.) Tj ET
+BT /F1 9.80 Tf 48.00 198.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 198.69 Td (Downstream FEM users who need generated section/property data for solver review.) Tj ET
+BT /F1 10.00 Tf 48.00 184.49 Td (The expected workflow is:) Tj ET
+BT /F1 9.80 Tf 48.00 165.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 165.69 Td (Select a predefined section type or define a Canvas thin-walled section.) Tj ET
+BT /F1 9.80 Tf 48.00 151.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 151.49 Td (Enter dimensions in millimeters.) Tj ET
+BT /F1 9.80 Tf 48.00 137.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 137.29 Td (Validate and calculate the section model.) Tj ET
+BT /F1 9.80 Tf 48.00 123.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 123.09 Td (Review area, inertias, centroid, principal axes, shear areas, torsion-related values, warping) Tj ET
+BT /F1 9.80 Tf 63.00 109.89 Td (constant, and shear center.) Tj ET
+BT /F1 9.80 Tf 48.00 95.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 95.69 Td (Inspect or edit stress output points.) Tj ET
+BT /F1 9.80 Tf 48.00 81.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 81.49 Td (Review a lightweight visualization mesh.) Tj ET
+BT /F1 9.80 Tf 48.00 67.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 67.29 Td (Export results through CSV, JSON, or FEM-oriented text formats.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 8538 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (The supported section types are:) Tj ET
+BT /F1 9.80 Tf 48.00 771.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 771.09 Td (H section \(SPT_H_SECTION\)) Tj ET
+BT /F1 9.80 Tf 48.00 756.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 756.89 Td (Hollow box section \(SPT_BOX_SECTION\)) Tj ET
+BT /F1 9.80 Tf 48.00 742.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 742.69 Td (Pipe section \(SPT_PIPE_SECTION\)) Tj ET
+BT /F1 9.80 Tf 48.00 728.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 728.49 Td (Quayside crane girder \(SPT_CRANE_GIRDER\)) Tj ET
+BT /F1 9.80 Tf 48.00 714.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 714.29 Td (Canvas thin-walled section \(SPT_CANVAS\)) Tj ET
+BT /F1 10.00 Tf 48.00 700.09 Td (The primary outputs are Area, Jz, Jy, Jyz, Jzo, Jyo, Jx, Az, Ay, cy, cz, theta, Cw, ys, and zs,) Tj ET
+BT /F1 10.00 Tf 48.00 686.29 Td (plus stress point coordinates, mesh counts, and export files.) Tj ET
+BT /F2 15.00 Tf 48.00 659.49 Td (3. Assignment Coverage) Tj ET
+0.900 g 48.00 621.83 499.28 16.66 re f 0 g
+0.720 G 0.35 w 48.00 621.83 499.28 16.66 re S 0 G
+BT /F2 7.10 Tf 51.50 626.39 Td (Required area) Tj ET
+0.750 G 0.30 w 147.86 638.49 m 147.86 621.83 l S 0 G
+BT /F2 7.10 Tf 151.36 626.39 Td (Repository evidence) Tj ET
+0.750 G 0.30 w 327.60 638.49 m 327.60 621.83 l S 0 G
+BT /F2 7.10 Tf 331.10 626.39 Td (Coverage statement) Tj ET
+0.750 G 0.30 w 467.40 638.49 m 467.40 621.83 l S 0 G
+BT /F2 7.10 Tf 470.90 626.39 Td (Status) Tj ET
+1.000 g 48.00 579.18 499.28 42.65 re f 0 g
+0.720 G 0.35 w 48.00 579.18 499.28 42.65 re S 0 G
+BT /F1 7.10 Tf 51.50 609.73 Td (Requirements and design) Tj ET
+BT /F1 7.10 Tf 51.50 601.07 Td (documents) Tj ET
+0.750 G 0.30 w 147.86 621.83 m 147.86 579.18 l S 0 G
+BT /F1 7.10 Tf 151.36 609.73 Td (Source requirement PDF/workbook, architecture) Tj ET
+BT /F1 7.10 Tf 151.36 601.07 Td (notes, implementation status, README, developer) Tj ET
+BT /F1 7.10 Tf 151.36 592.40 Td (guide, tests and validation fixtures) Tj ET
+0.750 G 0.30 w 327.60 621.83 m 327.60 579.18 l S 0 G
+BT /F1 7.10 Tf 331.10 609.73 Td (Requirements are represented through) Tj ET
+BT /F1 7.10 Tf 331.10 601.07 Td (source materials, reference data,) Tj ET
+BT /F1 7.10 Tf 331.10 592.40 Td (design notes, and executable evidence) Tj ET
+BT /F1 7.10 Tf 331.10 583.74 Td (rather than a single monolithic SRS.) Tj ET
+0.750 G 0.30 w 467.40 621.83 m 467.40 579.18 l S 0 G
+BT /F1 7.10 Tf 470.90 609.73 Td (Available and) Tj ET
+BT /F1 7.10 Tf 470.90 601.07 Td (evidence-based) Tj ET
+0.985 g 48.00 527.87 499.28 51.31 re f 0 g
+0.720 G 0.35 w 48.00 527.87 499.28 51.31 re S 0 G
+BT /F1 7.10 Tf 51.50 567.08 Td (Development artifacts) Tj ET
+0.750 G 0.30 w 147.86 579.18 m 147.86 527.87 l S 0 G
+BT /F1 7.10 Tf 151.36 567.08 Td (Source/, Examples/, CMakeLists.txt,) Tj ET
+BT /F1 7.10 Tf 151.36 558.42 Td (build_windows.bat, GitHub Actions workflow) Tj ET
+0.750 G 0.30 w 327.60 579.18 m 327.60 527.87 l S 0 G
+BT /F1 7.10 Tf 331.10 567.08 Td (The calculation core, shared API,) Tj ET
+BT /F1 7.10 Tf 331.10 558.42 Td (optional GUI, exporters, examples,) Tj ET
+BT /F1 7.10 Tf 331.10 549.76 Td (build targets, and platform build) Tj ET
+BT /F1 7.10 Tf 331.10 541.09 Td (support are implemented for the) Tj ET
+BT /F1 7.10 Tf 331.10 532.43 Td (documented scope.) Tj ET
+0.750 G 0.30 w 467.40 579.18 m 467.40 527.87 l S 0 G
+BT /F1 7.10 Tf 470.90 567.08 Td (Implemented) Tj ET
+1.000 g 48.00 485.22 499.28 42.65 re f 0 g
+0.720 G 0.35 w 48.00 485.22 499.28 42.65 re S 0 G
+BT /F1 7.10 Tf 51.50 515.77 Td (Testing and quality) Tj ET
+BT /F1 7.10 Tf 51.50 507.11 Td (assurance) Tj ET
+0.750 G 0.30 w 147.86 527.87 m 147.86 485.22 l S 0 G
+BT /F1 7.10 Tf 151.36 515.77 Td (CTest target, regression tests, API integration) Tj ET
+BT /F1 7.10 Tf 151.36 507.11 Td (tests, Qt smoke target, numerical validation) Tj ET
+BT /F1 7.10 Tf 151.36 498.45 Td (report, acceptance checklist, defect log, CI) Tj ET
+BT /F1 7.10 Tf 151.36 489.78 Td (workflow) Tj ET
+0.750 G 0.30 w 327.60 527.87 m 327.60 485.22 l S 0 G
+BT /F1 7.10 Tf 331.10 515.77 Td (Core/API tests and examples pass in) Tj ET
+BT /F1 7.10 Tf 331.10 507.11 Td (the local no-GUI verification; GUI) Tj ET
+BT /F1 7.10 Tf 331.10 498.45 Td (smoke and Windows deployment) Tj ET
+BT /F1 7.10 Tf 331.10 489.78 Td (validation are documented separately.) Tj ET
+0.750 G 0.30 w 467.40 527.87 m 467.40 485.22 l S 0 G
+BT /F1 7.10 Tf 470.90 515.77 Td (Implemented and) Tj ET
+BT /F1 7.10 Tf 470.90 507.11 Td (verified) Tj ET
+0.985 g 48.00 433.91 499.28 51.31 re f 0 g
+0.720 G 0.35 w 48.00 433.91 499.28 51.31 re S 0 G
+BT /F1 7.10 Tf 51.50 473.12 Td (User documentation) Tj ET
+0.750 G 0.30 w 147.86 485.22 m 147.86 433.91 l S 0 G
+BT /F1 7.10 Tf 151.36 473.12 Td (User manual, API reference, developer guide,) Tj ET
+BT /F1 7.10 Tf 151.36 464.46 Td (Windows Qt verification guide, README, DOCX user) Tj ET
+BT /F1 7.10 Tf 151.36 455.80 Td (manual package) Tj ET
+0.750 G 0.30 w 327.60 485.22 m 327.60 433.91 l S 0 G
+BT /F1 7.10 Tf 331.10 473.12 Td (Build, usage, API, GUI workflow,) Tj ET
+BT /F1 7.10 Tf 331.10 464.46 Td (export behavior, and troubleshooting) Tj ET
+BT /F1 7.10 Tf 331.10 455.80 Td (guidance are available; DOCX final) Tj ET
+BT /F1 7.10 Tf 331.10 447.14 Td (formatting review remains a manual) Tj ET
+BT /F1 7.10 Tf 331.10 438.47 Td (packaging step.) Tj ET
+0.750 G 0.30 w 467.40 485.22 m 467.40 433.91 l S 0 G
+BT /F1 7.10 Tf 470.90 473.12 Td (Available, final) Tj ET
+BT /F1 7.10 Tf 470.90 464.46 Td (manual review) Tj ET
+BT /F1 7.10 Tf 470.90 455.80 Td (pending) Tj ET
+1.000 g 48.00 391.26 499.28 42.65 re f 0 g
+0.720 G 0.35 w 48.00 391.26 499.28 42.65 re S 0 G
+BT /F1 7.10 Tf 51.50 421.81 Td (External/manual validation) Tj ET
+0.750 G 0.30 w 147.86 433.91 m 147.86 391.26 l S 0 G
+BT /F1 7.10 Tf 151.36 421.81 Td (Windows Qt verification checklist, FEM solver) Tj ET
+BT /F1 7.10 Tf 151.36 413.15 Td (acceptance notes, final acceptance checklist) Tj ET
+0.750 G 0.30 w 327.60 433.91 m 327.60 391.26 l S 0 G
+BT /F1 7.10 Tf 331.10 421.81 Td (Manual Windows deployment and) Tj ET
+BT /F1 7.10 Tf 331.10 413.15 Td (solver-side acceptance are identified) Tj ET
+BT /F1 7.10 Tf 331.10 404.49 Td (as external validation tasks beyond) Tj ET
+BT /F1 7.10 Tf 331.10 395.83 Td (local core/API verification.) Tj ET
+0.750 G 0.30 w 467.40 433.91 m 467.40 391.26 l S 0 G
+BT /F1 7.10 Tf 470.90 421.81 Td (Available, external) Tj ET
+BT /F1 7.10 Tf 470.90 413.15 Td (validation pending) Tj ET
+BT /F2 15.00 Tf 48.00 375.26 Td (4. Functional Requirements and Implemented Capabilities) Tj ET
+BT /F1 10.00 Tf 48.00 354.26 Td (The software implements section creation, validation, calculation, visualization, API integration,) Tj ET
+BT /F1 10.00 Tf 48.00 340.46 Td (and export workflows for the documented beam-section scope.) Tj ET
+BT /F2 12.20 Tf 48.00 317.66 Td (Supported Geometry Inputs) Tj ET
+BT /F1 10.00 Tf 48.00 300.66 Td (The predefined parametric section inputs use named dimensions. The API and GUI use the same) Tj ET
+BT /F1 10.00 Tf 48.00 286.86 Td (parameter names:) Tj ET
+BT /F1 9.80 Tf 48.00 268.06 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 268.06 Td (H section: A, H, e, f) Tj ET
+BT /F1 9.80 Tf 48.00 253.86 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 253.86 Td (Box section: A, B, H, D, E, H1, D1, E1) Tj ET
+BT /F1 9.80 Tf 48.00 239.66 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 239.66 Td (Pipe section: Do, t) Tj ET
+BT /F1 9.80 Tf 48.00 225.46 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 225.46 Td (Quayside crane girder: A, B, G, D, e, f, H, W, M, N, p, s, t, u, M1, k, k1, h, h1) Tj ET
+BT /F1 9.80 Tf 48.00 211.26 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 211.26 Td (Canvas section: plate centerline start/end coordinates, plate thickness, material id, and optional) Tj ET
+BT /F1 9.80 Tf 63.00 198.06 Td (plate id) Tj ET
+BT /F1 10.00 Tf 48.00 183.86 Td (Canvas sections allow arbitrary user-defined thin-walled plate layouts. Plates are modelled by) Tj ET
+BT /F1 10.00 Tf 48.00 170.06 Td (centerline endpoints and thickness; the implementation creates plate polygons and a rectangularized) Tj ET
+BT /F1 10.00 Tf 48.00 156.26 Td (component representation for property and mesh workflows.) Tj ET
+BT /F2 12.20 Tf 48.00 133.46 Td (Input Validation) Tj ET
+BT /F1 10.00 Tf 48.00 116.46 Td (The builder validates required parameters and rejects invalid inputs before calculation. Examples) Tj ET
+BT /F1 10.00 Tf 48.00 102.66 Td (include:) Tj ET
+BT /F1 9.80 Tf 48.00 83.86 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 83.86 Td (Required parametric dimensions must be positive.) Tj ET
+BT /F1 9.80 Tf 48.00 69.66 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 69.66 Td (H-section web thickness must not exceed flange width.) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 5196 >>
+stream
+BT /F1 9.80 Tf 48.00 789.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 789.89 Td (Box-section outer width and side web geometry must leave valid clearances.) Tj ET
+BT /F1 9.80 Tf 48.00 775.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 775.69 Td (Pipe thickness must be less than half the outer diameter.) Tj ET
+BT /F1 9.80 Tf 48.00 761.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 761.49 Td (Canvas plates must have positive thickness and nonzero length.) Tj ET
+BT /F1 9.80 Tf 48.00 747.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 747.29 Td (Explicit Canvas plate identifiers must be unique.) Tj ET
+BT /F1 10.00 Tf 48.00 733.09 Td (Invalid input produces diagnostics rather than silently continuing.) Tj ET
+BT /F2 12.20 Tf 48.00 710.29 Td (Calculated Results) Tj ET
+BT /F1 10.00 Tf 48.00 693.29 Td (The property result structure contains:) Tj ET
+BT /F1 9.80 Tf 48.00 674.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 674.49 Td (Cross-sectional area.) Tj ET
+BT /F1 9.80 Tf 48.00 660.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 660.29 Td (Second moments about global axes.) Tj ET
+BT /F1 9.80 Tf 48.00 646.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 646.09 Td (Product of inertia.) Tj ET
+BT /F1 9.80 Tf 48.00 631.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 631.89 Td (Principal second moments.) Tj ET
+BT /F1 9.80 Tf 48.00 617.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 617.69 Td (Torsion-related constant used by the tool.) Tj ET
+BT /F1 9.80 Tf 48.00 603.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 603.49 Td (Shear areas.) Tj ET
+BT /F1 9.80 Tf 48.00 589.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 589.29 Td (Centroid coordinates.) Tj ET
+BT /F1 9.80 Tf 48.00 575.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 575.09 Td (Principal-axis rotation.) Tj ET
+BT /F1 9.80 Tf 48.00 560.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 560.89 Td (Warping constant.) Tj ET
+BT /F1 9.80 Tf 48.00 546.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 546.69 Td (Shear-center coordinates.) Tj ET
+BT /F1 10.00 Tf 48.00 532.49 Td (Stress output points are generated for each section type. They include global y/z coordinates and) Tj ET
+BT /F1 10.00 Tf 48.00 518.69 Td (principal y0/z0 coordinates. The stress point engine supports coordinate transforms and validation) Tj ET
+BT /F1 10.00 Tf 48.00 504.89 Td (against the current section geometry.) Tj ET
+BT /F2 12.20 Tf 48.00 482.09 Td (Mesh and Visualization) Tj ET
+BT /F1 10.00 Tf 48.00 465.09 Td (The mesh engine creates lightweight triangular visualization meshes. Rectangular and plate-based) Tj ET
+BT /F1 10.00 Tf 48.00 451.29 Td (sections are meshed through rectangular components; pipe sections are meshed as annular triangular) Tj ET
+BT /F1 10.00 Tf 48.00 437.49 Td (subdivisions. The mesh is intended for display and summary counts, not as a solver-quality FEM) Tj ET
+BT /F1 10.00 Tf 48.00 423.69 Td (mesh.) Tj ET
+BT /F2 12.20 Tf 48.00 400.89 Td (Export and Integration) Tj ET
+BT /F1 10.00 Tf 48.00 383.89 Td (The exporter supports:) Tj ET
+BT /F1 9.80 Tf 48.00 365.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 365.09 Td (CSV property and stress point output.) Tj ET
+BT /F1 9.80 Tf 48.00 350.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 350.89 Td (JSON property, stress point, and mesh summary output.) Tj ET
+BT /F1 9.80 Tf 48.00 336.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 336.69 Td (ANSYS general beam-section card output.) Tj ET
+BT /F1 9.80 Tf 48.00 322.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 322.49 Td (ABAQUS beam general section output.) Tj ET
+BT /F1 9.80 Tf 48.00 308.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 308.29 Td (Midas Civil user-defined section output.) Tj ET
+BT /F1 10.00 Tf 48.00 294.09 Td (The C-compatible API exposes these workflows for use from C, C++, and foreign-function interfaces.) Tj ET
+BT /F2 15.00 Tf 48.00 267.29 Td (5. Design Requirements, Assumptions, and Constraints) Tj ET
+BT /F1 10.00 Tf 48.00 246.29 Td (All geometric inputs are interpreted in millimeters. Area and shear area are reported in square) Tj ET
+BT /F1 10.00 Tf 48.00 232.49 Td (millimeters, inertias and torsion-related values in millimeters to the fourth power, warping) Tj ET
+BT /F1 10.00 Tf 48.00 218.69 Td (constant in millimeters to the sixth power, coordinates in millimeters, and principal-axis angle in) Tj ET
+BT /F1 10.00 Tf 48.00 204.89 Td (radians.) Tj ET
+BT /F1 10.00 Tf 48.00 186.09 Td (The project uses double precision internally. GUI tables may display rounded values for) Tj ET
+BT /F1 10.00 Tf 48.00 172.29 Td (readability, but calculations use the core numeric representation.) Tj ET
+BT /F1 10.00 Tf 48.00 153.49 Td (The source requirement package contains a PDF and an Excel workbook. The workbook data is) Tj ET
+BT /F1 10.00 Tf 48.00 139.69 Td (represented in tests/fixtures/test_data_reference.json and is used as numerical reference evidence) Tj ET
+BT /F1 10.00 Tf 48.00 125.89 Td (for H, hollow box, pipe, and the supplied crane girder reference case. The source PDF diagram is) Tj ET
+BT /F1 10.00 Tf 48.00 112.09 Td (also the basis for crane girder geometry labels, but the repository documentation and) Tj ET
+BT /F1 10.00 Tf 48.00 98.29 Td (implementation note that it does not fully define every construction coordinate for arbitrary crane) Tj ET
+BT /F1 10.00 Tf 48.00 84.49 Td (girder inputs.) Tj ET
+BT /F1 10.00 Tf 48.00 65.69 Td (The main modelling assumptions are:) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 5941 >>
+stream
+BT /F1 9.80 Tf 48.00 789.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 789.89 Td (H, box, and pipe reference cases use analytical formulas aligned to the supplied workbook.) Tj ET
+BT /F1 9.80 Tf 48.00 775.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 775.69 Td (The pipe shear-area value follows the workbook factor rather than a pure half-area idealization.) Tj ET
+BT /F1 9.80 Tf 48.00 761.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 761.49 Td (Canvas sections use thin-walled plate centerlines converted to plate polygons and rectangularized) Tj ET
+BT /F1 9.80 Tf 63.00 748.29 Td (property components.) Tj ET
+BT /F1 9.80 Tf 48.00 734.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 734.09 Td (Open-section torsion for plate-based sections uses a plate-length and thickness expression.) Tj ET
+BT /F1 9.80 Tf 48.00 719.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 719.89 Td (H-section warping constant uses the documented equal-flange formula.) Tj ET
+BT /F1 9.80 Tf 48.00 705.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 705.69 Td (Symmetric closed box and pipe sections use zero warping constant as the exact closed-section) Tj ET
+BT /F1 9.80 Tf 63.00 692.49 Td (result represented by the implementation.) Tj ET
+BT /F1 9.80 Tf 48.00 678.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 678.29 Td (Crane girder and Canvas shear-center/warping behavior uses numerical open thin-walled) Tj ET
+BT /F1 9.80 Tf 63.00 665.09 Td (sectorial-area integration.) Tj ET
+BT /F1 9.80 Tf 48.00 650.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 650.89 Td (The exact crane girder workbook case is treated as authoritative; non-reference crane girder) Tj ET
+BT /F1 9.80 Tf 63.00 637.69 Td (inputs use the available named plate graph and emit an approximate-geometry diagnostic.) Tj ET
+BT /F1 10.00 Tf 48.00 623.49 Td (The regression tolerances documented by the project are:) Tj ET
+BT /F1 9.80 Tf 48.00 604.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 604.69 Td (Coordinates, area, and shear area: max\(0.01, 1e-6 * abs\(expected\)\)) Tj ET
+BT /F1 9.80 Tf 48.00 590.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 590.49 Td (Inertia and torsion: max\(1.0, 1e-6 * abs\(expected\)\)) Tj ET
+BT /F1 9.80 Tf 48.00 576.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 576.29 Td (Principal-axis angle: 1e-8 rad) Tj ET
+BT /F1 10.00 Tf 48.00 562.09 Td (These tolerances are encoded in the regression test suite and summarized in the numerical) Tj ET
+BT /F1 10.00 Tf 48.00 548.29 Td (validation report.) Tj ET
+BT /F2 15.00 Tf 48.00 521.49 Td (6. System Architecture and Design Rationale) Tj ET
+BT /F1 10.00 Tf 48.00 500.49 Td (The architecture is organized around a Qt-independent core with optional user interface and) Tj ET
+BT /F1 10.00 Tf 48.00 486.69 Td (integration layers. This separation allows the core library, API, tests, and examples to build) Tj ET
+BT /F1 10.00 Tf 48.00 472.89 Td (without Qt, while still supporting a GUI when Qt Widgets is available.) Tj ET
+BT /F1 10.00 Tf 48.00 454.09 Td (The main modules are:) Tj ET
+BT /F1 9.80 Tf 48.00 435.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 435.29 Td (Source/common: shared data model, section types, property structures, stress point structures,) Tj ET
+BT /F1 9.80 Tf 63.00 422.09 Td (mesh structures, materials, and diagnostics.) Tj ET
+BT /F1 9.80 Tf 48.00 407.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 407.89 Td (Source/geometry: section builders, parametric geometry construction, Canvas plate validation,) Tj ET
+BT /F1 9.80 Tf 63.00 394.69 Td (plate polygons, contours, and rectangle components.) Tj ET
+BT /F1 9.80 Tf 48.00 380.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 380.49 Td (Source/calculation: area, centroid, inertia, torsion-related quantities, shear areas, principal) Tj ET
+BT /F1 9.80 Tf 63.00 367.29 Td (axes, warping constant, and shear-center calculations.) Tj ET
+BT /F1 9.80 Tf 48.00 353.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 353.09 Td (Source/stress: default stress point generation, coordinate transformations, and stress point) Tj ET
+BT /F1 9.80 Tf 63.00 339.89 Td (validation.) Tj ET
+BT /F1 9.80 Tf 48.00 325.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 325.69 Td (Source/mesh: lightweight triangular visualization mesh generation.) Tj ET
+BT /F1 9.80 Tf 48.00 311.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 311.49 Td (Source/import_export: CSV, JSON, ANSYS, ABAQUS, and Midas Civil writers.) Tj ET
+BT /F1 9.80 Tf 48.00 297.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 297.29 Td (Source/api: C ABI wrapper and exported shared-library interface.) Tj ET
+BT /F1 9.80 Tf 48.00 283.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 283.09 Td (Source/gui: optional Qt Widgets application.) Tj ET
+BT /F1 10.00 Tf 48.00 268.89 Td (The data flow is:) Tj ET
+0.960 g 45.00 172.69 505.28 83.40 re f 0 g
+0.820 G 0.35 w 45.00 172.69 505.28 83.40 re S 0 G
+BT /F3 7.80 Tf 48.00 242.09 Td (GUI/API input) Tj ET
+BT /F3 7.80 Tf 48.00 231.89 Td (  -> SectionParameters or PlateSegment[]) Tj ET
+BT /F3 7.80 Tf 48.00 221.69 Td (  -> SectionBuilder validation and SectionModel construction) Tj ET
+BT /F3 7.80 Tf 48.00 211.49 Td (  -> SectionCalculator property calculation) Tj ET
+BT /F3 7.80 Tf 48.00 201.29 Td (  -> StressPointEngine stress output point generation) Tj ET
+BT /F3 7.80 Tf 48.00 191.09 Td (  -> MeshEngine visualization mesh generation) Tj ET
+BT /F3 7.80 Tf 48.00 180.89 Td (  -> GUI display, API return values, or Exporter output files) Tj ET
+BT /F1 10.00 Tf 48.00 165.69 Td (This architecture keeps the computational core reusable and testable. The API and GUI are clients) Tj ET
+BT /F1 10.00 Tf 48.00 151.89 Td (of the same core data model. The C API presents stable plain-data boundaries; the GUI presents) Tj ET
+BT /F1 10.00 Tf 48.00 138.09 Td (interactive workflows over the same underlying operations.) Tj ET
+BT /F2 15.00 Tf 48.00 111.29 Td (7. Implementation Details and Development Artifacts) Tj ET
+BT /F1 10.00 Tf 48.00 90.29 Td (The implementation is concentrated in a small number of focused modules.) Tj ET
+BT /F1 10.00 Tf 48.00 71.49 Td (Source/common/DataModel.h defines the central data structures: section type enums, section) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 6110 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (parameters, materials, rectangles, plate segments, contours, properties, stress points, mesh data,) Tj ET
+BT /F1 10.00 Tf 48.00 776.09 Td (diagnostics, section models, and calculation results. This common layer allows builders,) Tj ET
+BT /F1 10.00 Tf 48.00 762.29 Td (calculators, exporters, tests, API code, and GUI code to exchange the same objects.) Tj ET
+BT /F1 10.00 Tf 48.00 743.49 Td (Source/geometry/SectionBuilder.cpp is responsible for constructing valid section models. It builds) Tj ET
+BT /F1 10.00 Tf 48.00 729.69 Td (H, box, pipe, crane girder, and Canvas sections. For H and box sections it assembles rectangular) Tj ET
+BT /F1 10.00 Tf 48.00 715.89 Td (components and contours. For pipe sections it creates circular contour data. For Canvas sections it) Tj ET
+BT /F1 10.00 Tf 48.00 702.09 Td (validates plate data, generates automatic plate identifiers where needed, converts plate) Tj ET
+BT /F1 10.00 Tf 48.00 688.29 Td (centerlines to polygons, and stores the resulting plates and components. For the crane girder it) Tj ET
+BT /F1 10.00 Tf 48.00 674.49 Td (creates a named plate graph based on the available requirement diagram labels and stores) Tj ET
+BT /F1 10.00 Tf 48.00 660.69 Td (workbook-derived override values for the exact reference case.) Tj ET
+BT /F1 10.00 Tf 48.00 641.89 Td (Source/calculation/SectionCalculator.cpp performs the section property calculations. It implements) Tj ET
+BT /F1 10.00 Tf 48.00 628.09 Td (analytical formulas for supported simple sections, composite rectangle calculations for plate-based) Tj ET
+BT /F1 10.00 Tf 48.00 614.29 Td (sections, principal axes from the inertia tensor, torsion-related values, shear areas, warping) Tj ET
+BT /F1 10.00 Tf 48.00 600.49 Td (constant, and shear-center behavior. Its open thin-walled sectorial-area integration supports crane) Tj ET
+BT /F1 10.00 Tf 48.00 586.69 Td (and Canvas warping/shear-center calculations.) Tj ET
+BT /F1 10.00 Tf 48.00 567.89 Td (Source/stress/StressPointEngine.cpp creates default stress output locations and transforms) Tj ET
+BT /F1 10.00 Tf 48.00 554.09 Td (coordinates between global and principal systems. For H, box, and pipe sections it provides) Tj ET
+BT /F1 10.00 Tf 48.00 540.29 Td (section-specific default points. For crane and Canvas sections it uses plate endpoints for default) Tj ET
+BT /F1 10.00 Tf 48.00 526.49 Td (output points. It can also validate whether a stress point lies on or outside the modelled section.) Tj ET
+BT /F1 10.00 Tf 48.00 507.69 Td (Source/mesh/MeshEngine.cpp generates visualization mesh data. Rectangular components are divided) Tj ET
+BT /F1 10.00 Tf 48.00 493.89 Td (into triangular cells according to target size or refinement factor. Pipe sections are triangulated) Tj ET
+BT /F1 10.00 Tf 48.00 480.09 Td (as annular subdivisions. The mesh model stores nodes, triangles, boundary edges, and diagnostics.) Tj ET
+BT /F1 10.00 Tf 48.00 461.29 Td (Source/import_export/Exporter.cpp writes output files. CSV and JSON exports provide property and) Tj ET
+BT /F1 10.00 Tf 48.00 447.49 Td (stress-point data. ANSYS, ABAQUS, and Midas Civil writers emit general section/property cards or) Tj ET
+BT /F1 10.00 Tf 48.00 433.69 Td (text sections for downstream solver review. The Windows path logic uses UTF-8 to wide-character) Tj ET
+BT /F1 10.00 Tf 48.00 419.89 Td (conversion so exported files can be written to Unicode paths on Windows.) Tj ET
+BT /F1 10.00 Tf 48.00 401.09 Td (Source/api/section_property_tool.cpp wraps the core in a C-compatible interface. It converts API) Tj ET
+BT /F1 10.00 Tf 48.00 387.29 Td (enums and structs to core types, manages opaque handles, allocates/free stress point arrays,) Tj ET
+BT /F1 10.00 Tf 48.00 373.49 Td (exposes mesh counts, routes exports, and provides thread-local error reporting.) Tj ET
+BT /F1 10.00 Tf 48.00 354.69 Td (Source/gui/main.cpp implements the optional Qt Widgets GUI. It includes the main cross-section) Tj ET
+BT /F1 10.00 Tf 48.00 340.89 Td (window, parameter and property tables, graphics views, stress point editing, mesh visualization,) Tj ET
+BT /F1 10.00 Tf 48.00 327.09 Td (and the Canvas drawing/editing workflow.) Tj ET
+BT /F1 10.00 Tf 48.00 308.29 Td (Examples/ contains three buildable programs:) Tj ET
+BT /F1 9.80 Tf 48.00 289.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 289.49 Td (example1_parametric: creates an H section and prints area, inertia, warping constant, and shear) Tj ET
+BT /F1 9.80 Tf 63.00 276.29 Td (center.) Tj ET
+BT /F1 9.80 Tf 48.00 262.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 262.09 Td (example2_canvas: creates a three-plate Canvas section and prints area and centroid.) Tj ET
+BT /F1 9.80 Tf 48.00 247.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 247.89 Td (example3_dll_batch: runs multiple API calculations in a batch-style workflow.) Tj ET
+BT /F1 10.00 Tf 48.00 233.69 Td (CMakeLists.txt builds the static core library, shared API library, tests, examples, optional GUI,) Tj ET
+BT /F1 10.00 Tf 48.00 219.89 Td (and optional GUI smoke test. build_windows.bat supports Windows Qt build/deployment workflows with) Tj ET
+BT /F1 10.00 Tf 48.00 206.09 Td (MSVC or MinGW depending on installed Qt paths.) Tj ET
+BT /F2 15.00 Tf 48.00 179.29 Td (8. Engineering Calculations and Validation Approach) Tj ET
+BT /F1 10.00 Tf 48.00 158.29 Td (The calculation strategy combines analytical formulas, composite geometry calculations, and) Tj ET
+BT /F1 10.00 Tf 48.00 144.49 Td (workbook-based reference validation.) Tj ET
+BT /F1 10.00 Tf 48.00 125.69 Td (For H sections, the geometry is represented by top flange, web, and bottom flange rectangles. The) Tj ET
+BT /F1 10.00 Tf 48.00 111.89 Td (tool calculates area, centroid, global inertias, shear areas, torsion-related constant, principal) Tj ET
+BT /F1 10.00 Tf 48.00 98.09 Td (axes, and an analytical warping constant. The reference H-section case uses A = 100 mm, H = 210 mm,) Tj ET
+BT /F1 10.00 Tf 48.00 84.29 Td (e = 20 mm, and f = 12 mm; the expected area is 6520 mm2.) Tj ET
+BT /F1 10.00 Tf 48.00 65.49 Td (For hollow box sections, the builder constructs bottom plate, top plate, and side web rectangles) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 7055 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (based on the documented eight parameters. The calculation includes workbook-aligned area, centroid,) Tj ET
+BT /F1 10.00 Tf 48.00 776.09 Td (inertias, torsion-related constant, and shear areas. The reference case uses dimensions including A) Tj ET
+BT /F1 10.00 Tf 48.00 762.29 Td (= 1320 mm, B = 1250 mm, H = 2600 mm, D = 40 mm, E = 16 mm, H1 = 600 mm, D1 = 22 mm, and E1 = 16 mm;) Tj ET
+BT /F1 10.00 Tf 48.00 748.49 Td (the expected area is 165040 mm2.) Tj ET
+BT /F1 10.00 Tf 48.00 729.69 Td (For pipe sections, the model uses outer diameter Do and thickness t. The implementation calculates) Tj ET
+BT /F1 10.00 Tf 48.00 715.89 Td (annular area and moments analytically. The reference case uses Do = 1300 mm and t = 14 mm; the) Tj ET
+BT /F1 10.00 Tf 48.00 702.09 Td (expected area is approximately 56561.234135 mm2. The documented shear-area value follows a) Tj ET
+BT /F1 10.00 Tf 48.00 688.29 Td (workbook-specific factor slightly above one half of area.) Tj ET
+BT /F1 10.00 Tf 48.00 669.49 Td (For the quayside crane girder, the reference parameter set is recovered from the workbook and) Tj ET
+BT /F1 10.00 Tf 48.00 655.69 Td (treated as the numerical acceptance case. The implementation stores the reference properties and) Tj ET
+BT /F1 10.00 Tf 48.00 641.89 Td (stress points for that exact case because the requirement diagram does not fully define arbitrary) Tj ET
+BT /F1 10.00 Tf 48.00 628.09 Td (coordinate construction rules. Other crane parameter sets are built through the available named) Tj ET
+BT /F1 10.00 Tf 48.00 614.29 Td (plate graph and reported as approximate.) Tj ET
+BT /F1 10.00 Tf 48.00 595.49 Td (For Canvas thin-walled sections, users provide plate centerlines and thicknesses. The software) Tj ET
+BT /F1 10.00 Tf 48.00 581.69 Td (converts those plates into geometry suitable for property and mesh calculations. The documented) Tj ET
+BT /F1 10.00 Tf 48.00 567.89 Td (example has three plates:) Tj ET
+BT /F1 9.80 Tf 48.00 549.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 549.09 Td (bottom: \(0, 0\) to \(100, 0\), thickness 10) Tj ET
+BT /F1 9.80 Tf 48.00 534.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 534.89 Td (web: \(50, 0\) to \(50, 120\), thickness 8) Tj ET
+BT /F1 9.80 Tf 48.00 520.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 520.69 Td (top: \(0, 120\) to \(100, 120\), thickness 10) Tj ET
+BT /F1 10.00 Tf 48.00 506.49 Td (That example reports area 2960 mm2 and centroid \(50, 60\) mm.) Tj ET
+BT /F1 10.00 Tf 48.00 487.69 Td (Principal properties are derived from the centroidal inertia tensor. The documented formula for) Tj ET
+BT /F1 10.00 Tf 48.00 473.89 Td (principal-axis angle is:) Tj ET
+0.960 g 45.00 438.89 505.28 22.20 re f 0 g
+0.820 G 0.35 w 45.00 438.89 505.28 22.20 re S 0 G
+BT /F3 7.80 Tf 48.00 447.09 Td (theta = 0.5  atan2\(-2  Jyz, Jy - Jz\)) Tj ET
+BT /F1 10.00 Tf 48.00 431.89 Td (The principal inertias are the eigenvalues of the centroidal inertia tensor.) Tj ET
+BT /F1 10.00 Tf 48.00 413.09 Td (The numerical validation report records workbook expected values against computed values. The) Tj ET
+BT /F1 10.00 Tf 48.00 399.29 Td (summary is:) Tj ET
+0.900 g 48.00 363.83 499.28 16.66 re f 0 g
+0.720 G 0.35 w 48.00 363.83 499.28 16.66 re S 0 G
+BT /F2 7.10 Tf 51.50 368.39 Td (Section) Tj ET
+0.750 G 0.30 w 147.86 380.49 m 147.86 363.83 l S 0 G
+BT /F2 7.10 Tf 151.36 368.39 Td (Property checks) Tj ET
+0.750 G 0.30 w 327.60 380.49 m 327.60 363.83 l S 0 G
+BT /F2 7.10 Tf 331.10 368.39 Td (Stress point checks) Tj ET
+0.750 G 0.30 w 467.40 380.49 m 467.40 363.83 l S 0 G
+BT /F2 7.10 Tf 470.90 368.39 Td (Result) Tj ET
+1.000 g 48.00 347.17 499.28 16.66 re f 0 g
+0.720 G 0.35 w 48.00 347.17 499.28 16.66 re S 0 G
+BT /F1 7.10 Tf 51.50 351.73 Td (H section) Tj ET
+0.750 G 0.30 w 147.86 363.83 m 147.86 347.17 l S 0 G
+BT /F1 7.10 Tf 151.36 351.73 Td (8/8) Tj ET
+0.750 G 0.30 w 327.60 363.83 m 327.60 347.17 l S 0 G
+BT /F1 7.10 Tf 331.10 351.73 Td (4/4) Tj ET
+0.750 G 0.30 w 467.40 363.83 m 467.40 347.17 l S 0 G
+BT /F1 7.10 Tf 470.90 351.73 Td (PASS) Tj ET
+0.985 g 48.00 330.50 499.28 16.66 re f 0 g
+0.720 G 0.35 w 48.00 330.50 499.28 16.66 re S 0 G
+BT /F1 7.10 Tf 51.50 335.07 Td (Hollow box) Tj ET
+0.750 G 0.30 w 147.86 347.17 m 147.86 330.50 l S 0 G
+BT /F1 7.10 Tf 151.36 335.07 Td (8/8) Tj ET
+0.750 G 0.30 w 327.60 347.17 m 327.60 330.50 l S 0 G
+BT /F1 7.10 Tf 331.10 335.07 Td (4/4) Tj ET
+0.750 G 0.30 w 467.40 347.17 m 467.40 330.50 l S 0 G
+BT /F1 7.10 Tf 470.90 335.07 Td (PASS) Tj ET
+1.000 g 48.00 313.84 499.28 16.66 re f 0 g
+0.720 G 0.35 w 48.00 313.84 499.28 16.66 re S 0 G
+BT /F1 7.10 Tf 51.50 318.40 Td (Pipe) Tj ET
+0.750 G 0.30 w 147.86 330.50 m 147.86 313.84 l S 0 G
+BT /F1 7.10 Tf 151.36 318.40 Td (8/8) Tj ET
+0.750 G 0.30 w 327.60 330.50 m 327.60 313.84 l S 0 G
+BT /F1 7.10 Tf 331.10 318.40 Td (4/4) Tj ET
+0.750 G 0.30 w 467.40 330.50 m 467.40 313.84 l S 0 G
+BT /F1 7.10 Tf 470.90 318.40 Td (PASS) Tj ET
+0.985 g 48.00 288.52 499.28 25.32 re f 0 g
+0.720 G 0.35 w 48.00 288.52 499.28 25.32 re S 0 G
+BT /F1 7.10 Tf 51.50 301.74 Td (Crane girder reference) Tj ET
+BT /F1 7.10 Tf 51.50 293.08 Td (case) Tj ET
+0.750 G 0.30 w 147.86 313.84 m 147.86 288.52 l S 0 G
+BT /F1 7.10 Tf 151.36 301.74 Td (13/13) Tj ET
+0.750 G 0.30 w 327.60 313.84 m 327.60 288.52 l S 0 G
+BT /F1 7.10 Tf 331.10 301.74 Td (4/4) Tj ET
+0.750 G 0.30 w 467.40 313.84 m 467.40 288.52 l S 0 G
+BT /F1 7.10 Tf 470.90 301.74 Td (PASS) Tj ET
+BT /F1 10.00 Tf 48.00 280.52 Td (Across the workbook-backed validation set, the report records 41 numerical checks passing within) Tj ET
+BT /F1 10.00 Tf 48.00 266.72 Td (the encoded tolerances. Additional regression checks cover shear-center and warping-constant) Tj ET
+BT /F1 10.00 Tf 48.00 252.92 Td (behavior. For H sections, the shear center matches the centroid and the warping constant uses the) Tj ET
+BT /F1 10.00 Tf 48.00 239.12 Td (analytical equal-flange formula. For box and pipe sections, the shear center matches the centroid) Tj ET
+BT /F1 10.00 Tf 48.00 225.32 Td (and warping constant is zero for the symmetric closed section representation. For crane and Canvas) Tj ET
+BT /F1 10.00 Tf 48.00 211.52 Td (sections, the implementation uses numerical open thin-walled sectorial-area integration and) Tj ET
+BT /F1 10.00 Tf 48.00 197.72 Td (regression checks expected qualitative behavior such as magnitude, sign, and nonzero offsets.) Tj ET
+BT /F2 15.00 Tf 48.00 170.92 Td (9. API and Integration Interface) Tj ET
+BT /F1 10.00 Tf 48.00 149.92 Td (The public integration interface is a C-compatible API declared in) Tj ET
+BT /F1 10.00 Tf 48.00 136.12 Td (Source/api/section_property_tool.h. It is designed for C, C++, and foreign-function interfaces.) Tj ET
+BT /F1 10.00 Tf 48.00 117.32 Td (The API uses opaque handles:) Tj ET
+BT /F1 9.80 Tf 48.00 98.52 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 98.52 Td (SptSectionHandle for built section models.) Tj ET
+BT /F1 9.80 Tf 48.00 84.32 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 84.32 Td (SptResultHandle for calculated results.) Tj ET
+BT /F1 9.80 Tf 48.00 70.12 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 70.12 Td (SptMeshHandle for generated mesh data.) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Length 4996 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (Each handle has an explicit destroy function. Stress point arrays returned from the API are) Tj ET
+BT /F1 10.00 Tf 48.00 776.09 Td (explicitly released with spt_free_stress_point_array. This avoids exposing C++ object ownership) Tj ET
+BT /F1 10.00 Tf 48.00 762.29 Td (across the ABI boundary.) Tj ET
+BT /F1 10.00 Tf 48.00 743.49 Td (The API lifecycle is:) Tj ET
+0.960 g 45.00 647.29 505.28 83.40 re f 0 g
+0.820 G 0.35 w 45.00 647.29 505.28 83.40 re S 0 G
+BT /F3 7.80 Tf 48.00 716.69 Td (spt_create_section_from_parameters\(...\) or spt_create_section_from_canvas_lines\(...\)) Tj ET
+BT /F3 7.80 Tf 48.00 706.49 Td (spt_calculate_section_properties\(...\)) Tj ET
+BT /F3 7.80 Tf 48.00 696.29 Td (spt_get_result_properties\(...\)) Tj ET
+BT /F3 7.80 Tf 48.00 686.09 Td (spt_get_result_stress_points\(...\) or spt_create_mesh\(...\)) Tj ET
+BT /F3 7.80 Tf 48.00 675.89 Td (spt_export_results\(...\)) Tj ET
+BT /F3 7.80 Tf 48.00 665.69 Td (spt_destroy_result\(...\)) Tj ET
+BT /F3 7.80 Tf 48.00 655.49 Td (spt_destroy_section\(...\)) Tj ET
+BT /F1 10.00 Tf 48.00 640.29 Td (All API functions return 0 on success. Nonzero return values indicate failure, and the caller can) Tj ET
+BT /F1 10.00 Tf 48.00 626.49 Td (inspect spt_get_last_error\(\). The error structure includes code, severity, field, message, and) Tj ET
+BT /F1 10.00 Tf 48.00 612.69 Td (remediation fields. The last error is thread-local in the implementation.) Tj ET
+BT /F1 10.00 Tf 48.00 593.89 Td (A minimal H-section API workflow is:) Tj ET
+0.960 g 45.00 354.89 505.28 226.20 re f 0 g
+0.820 G 0.35 w 45.00 354.89 505.28 226.20 re S 0 G
+BT /F3 7.80 Tf 48.00 567.09 Td (const SptParameter values[] = {) Tj ET
+BT /F3 7.80 Tf 48.00 556.89 Td (    {"A", 100.0},) Tj ET
+BT /F3 7.80 Tf 48.00 546.69 Td (    {"H", 210.0},) Tj ET
+BT /F3 7.80 Tf 48.00 536.49 Td (    {"e", 20.0},) Tj ET
+BT /F3 7.80 Tf 48.00 526.29 Td (    {"f", 12.0},) Tj ET
+BT /F3 7.80 Tf 48.00 516.09 Td (};) Tj ET
+BT /F3 7.80 Tf 48.00 505.89 Td () Tj ET
+BT /F3 7.80 Tf 48.00 495.69 Td (SptSectionParameters params = {SPT_H_SECTION, values, 4};) Tj ET
+BT /F3 7.80 Tf 48.00 485.49 Td (SptSectionHandle section = NULL;) Tj ET
+BT /F3 7.80 Tf 48.00 475.29 Td (spt_create_section_from_parameters\(&params, &section\);) Tj ET
+BT /F3 7.80 Tf 48.00 465.09 Td () Tj ET
+BT /F3 7.80 Tf 48.00 454.89 Td (SptResultHandle result = NULL;) Tj ET
+BT /F3 7.80 Tf 48.00 444.69 Td (spt_calculate_section_properties\(section, &result\);) Tj ET
+BT /F3 7.80 Tf 48.00 434.49 Td () Tj ET
+BT /F3 7.80 Tf 48.00 424.29 Td (SptSectionProperties props;) Tj ET
+BT /F3 7.80 Tf 48.00 414.09 Td (spt_get_result_properties\(result, &props\);) Tj ET
+BT /F3 7.80 Tf 48.00 403.89 Td () Tj ET
+BT /F3 7.80 Tf 48.00 393.69 Td (spt_export_results\(result, "section.csv", SPT_EXPORT_CSV\);) Tj ET
+BT /F3 7.80 Tf 48.00 383.49 Td () Tj ET
+BT /F3 7.80 Tf 48.00 373.29 Td (spt_destroy_result\(result\);) Tj ET
+BT /F3 7.80 Tf 48.00 363.09 Td (spt_destroy_section\(section\);) Tj ET
+BT /F1 10.00 Tf 48.00 347.89 Td (The shared-library target is SectionPropertyApi and the output name is SectionPropertyTool. On) Tj ET
+BT /F1 10.00 Tf 48.00 334.09 Td (macOS/Linux the artifact is a .dylib or .so; on Windows the documented artifacts are) Tj ET
+BT /F1 10.00 Tf 48.00 320.29 Td (SectionPropertyTool.dll and SectionPropertyTool.lib.) Tj ET
+BT /F2 15.00 Tf 48.00 293.49 Td (10. Graphical User Interface and User Workflow) Tj ET
+BT /F1 10.00 Tf 48.00 272.49 Td (The GUI is an optional Qt Widgets application. It is not required for the core/API build, but it) Tj ET
+BT /F1 10.00 Tf 48.00 258.69 Td (provides an interactive workflow when Qt is installed.) Tj ET
+BT /F1 10.00 Tf 48.00 239.89 Td (The main window is organized into four tabs:) Tj ET
+BT /F1 9.80 Tf 48.00 221.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 221.09 Td (General) Tj ET
+BT /F1 9.80 Tf 48.00 206.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 206.89 Td (Stress Points) Tj ET
+BT /F1 9.80 Tf 48.00 192.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 192.69 Td (FE Mesh) Tj ET
+BT /F1 9.80 Tf 48.00 178.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 178.49 Td (Canvas) Tj ET
+BT /F1 10.00 Tf 48.00 164.29 Td (The General tab allows users to choose a section type, edit geometry parameters, apply) Tj ET
+BT /F1 10.00 Tf 48.00 150.49 Td (calculations, review the section drawing, and inspect calculated properties. The table displays) Tj ET
+BT /F1 10.00 Tf 48.00 136.69 Td (area, inertias, product of inertia, principal inertias, torsion-related constant, shear areas,) Tj ET
+BT /F1 10.00 Tf 48.00 122.89 Td (centroid, principal-axis angle, warping constant, and shear-center coordinates.) Tj ET
+BT /F1 10.00 Tf 48.00 104.09 Td (The Stress Points tab lists stress output locations with IDs, global coordinates, and principal) Tj ET
+BT /F1 10.00 Tf 48.00 90.29 Td (coordinates. Editing global y or z updates the principal coordinates and redraws markers in the) Tj ET
+BT /F1 10.00 Tf 48.00 76.49 Td (graphics view. Reset Defaults recalculates the generated stress points.) Tj ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 16 0 R >>
+endobj
+18 0 obj
+<< /Length 5553 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (The FE Mesh tab displays the lightweight triangular visualization mesh generated from the current) Tj ET
+BT /F1 10.00 Tf 48.00 776.09 Td (section. A refinement factor requests denser or coarser display meshes. This mesh is for) Tj ET
+BT /F1 10.00 Tf 48.00 762.29 Td (visualization and summary counts, not solver-quality export.) Tj ET
+BT /F1 10.00 Tf 48.00 743.49 Td (The Canvas tab provides advanced graphical input for user-defined thin-walled sections. Users can) Tj ET
+BT /F1 10.00 Tf 48.00 729.69 Td (add rows manually, draw plate centerlines, set plate thickness, assign or auto-generate plate IDs,) Tj ET
+BT /F1 10.00 Tf 48.00 715.89 Td (delete selected plates, clear the Canvas, and build the Canvas section. Selection stays) Tj ET
+BT /F1 10.00 Tf 48.00 702.09 Td (synchronized between the plate table and drawing. Select/Edit mode supports endpoint dragging with) Tj ET
+BT /F1 10.00 Tf 48.00 688.29 Td (table write-back on release. The view supports grid display and snap-to-grid for drawing and) Tj ET
+BT /F1 10.00 Tf 48.00 674.49 Td (editing.) Tj ET
+BT /F1 10.00 Tf 48.00 655.69 Td (The General, Stress Points, FE Mesh, and Canvas graphics views support zoom, mouse-wheel zoom,) Tj ET
+BT /F1 10.00 Tf 48.00 641.89 Td (panning, fit-to-scene, and reset. After successful parametric recalculation or Canvas build, the) Tj ET
+BT /F1 10.00 Tf 48.00 628.09 Td (GUI refreshes properties, stress points, mesh, and previews from the active section geometry.) Tj ET
+BT /F2 15.00 Tf 48.00 601.29 Td (11. Export and Downstream Workflow Support) Tj ET
+BT /F1 10.00 Tf 48.00 580.29 Td (Export is available through the shared-library API and implemented in the core exporter module.) Tj ET
+BT /F1 10.00 Tf 48.00 561.49 Td (CSV output contains a property table and stress point rows. JSON output contains properties, stress) Tj ET
+BT /F1 10.00 Tf 48.00 547.69 Td (points, and a mesh summary. These formats are useful for spreadsheet review, scripting, and) Tj ET
+BT /F1 10.00 Tf 48.00 533.89 Td (downstream data exchange.) Tj ET
+BT /F1 10.00 Tf 48.00 515.09 Td (ANSYS export writes a Mechanical APDL beam-section card using a general arbitrary section) Tj ET
+BT /F1 10.00 Tf 48.00 501.29 Td (representation. The writer emits SECTYPE, SECOFFSET,BSEC, and SECDATA content. The SECOFFSET,BSEC) Tj ET
+BT /F1 10.00 Tf 48.00 487.49 Td (line is specifically included to avoid double-counting centroid offsets in the generated ASEC) Tj ET
+BT /F1 10.00 Tf 48.00 473.69 Td (workflow.) Tj ET
+BT /F1 10.00 Tf 48.00 454.89 Td (ABAQUS export writes *BEAM GENERAL SECTION, SECTION=GENERAL content with area, inertias, product of) Tj ET
+BT /F1 10.00 Tf 48.00 441.09 Td (inertia, torsion-related constant, and section point output when stress points are available.) Tj ET
+BT /F1 10.00 Tf 48.00 422.29 Td (Midas Civil export writes a Midas Civil Text user-defined section with area, shear areas,) Tj ET
+BT /F1 10.00 Tf 48.00 408.49 Td (torsion-related constant, and inertias.) Tj ET
+BT /F1 10.00 Tf 48.00 389.69 Td (The API integration tests check generated content for ANSYS, ABAQUS, and Midas Civil, including) Tj ET
+BT /F1 10.00 Tf 48.00 375.89 Td (empty-stress-point behavior. Solver-side acceptance in the target applications is still an external) Tj ET
+BT /F1 10.00 Tf 48.00 362.09 Td (validation step because it requires running the generated cards inside those commercial tools.) Tj ET
+BT /F2 15.00 Tf 48.00 335.29 Td (12. Testing and Quality Assurance) Tj ET
+BT /F1 10.00 Tf 48.00 314.29 Td (The project uses an aggregated CTest target for core/API coverage plus optional Qt GUI smoke) Tj ET
+BT /F1 10.00 Tf 48.00 300.49 Td (testing when Qt test components are available.) Tj ET
+BT /F1 10.00 Tf 48.00 281.69 Td (The core/API test executable is SectionPropertyTests. It is built from:) Tj ET
+BT /F1 9.80 Tf 48.00 262.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 262.89 Td (tests/unit/test_main.cpp) Tj ET
+BT /F1 9.80 Tf 48.00 248.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 248.69 Td (tests/regression/test_regression.cpp) Tj ET
+BT /F1 9.80 Tf 48.00 234.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 234.49 Td (tests/integration/test_api.cpp) Tj ET
+BT /F1 10.00 Tf 48.00 220.29 Td (The test runner executes regression and API integration checks. The regression suite covers:) Tj ET
+BT /F1 9.80 Tf 48.00 201.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 201.49 Td (H-section workbook values and four stress points.) Tj ET
+BT /F1 9.80 Tf 48.00 187.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 187.29 Td (Hollow box workbook values and four stress points.) Tj ET
+BT /F1 9.80 Tf 48.00 173.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 173.09 Td (Pipe workbook values and four stress points.) Tj ET
+BT /F1 9.80 Tf 48.00 158.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 158.89 Td (Supplied crane girder workbook values, principal properties, and four stress points.) Tj ET
+BT /F1 9.80 Tf 48.00 144.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 144.69 Td (Warping constant and shear-center behavior.) Tj ET
+BT /F1 9.80 Tf 48.00 130.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 130.49 Td (Non-reference crane girder approximate-path diagnostics and deterministic behavior.) Tj ET
+BT /F1 9.80 Tf 48.00 116.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 116.29 Td (Invalid Canvas inputs, duplicate IDs, auto-generated IDs, and valid Canvas calculations.) Tj ET
+BT /F1 10.00 Tf 48.00 102.09 Td (The API integration tests cover:) Tj ET
+BT /F1 9.80 Tf 48.00 83.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 83.29 Td (API version reporting.) Tj ET
+BT /F1 9.80 Tf 48.00 69.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 69.09 Td (Section creation.) Tj ET
+endstream
+endobj
+19 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 18 0 R >>
+endobj
+20 0 obj
+<< /Length 5853 >>
+stream
+BT /F1 9.80 Tf 48.00 789.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 789.89 Td (Property calculation.) Tj ET
+BT /F1 9.80 Tf 48.00 775.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 775.69 Td (Property retrieval including warping constant and shear-center fields.) Tj ET
+BT /F1 9.80 Tf 48.00 761.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 761.49 Td (Stress point retrieval and memory cleanup.) Tj ET
+BT /F1 9.80 Tf 48.00 747.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 747.29 Td (Mesh creation and mesh counts.) Tj ET
+BT /F1 9.80 Tf 48.00 733.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 733.09 Td (CSV export.) Tj ET
+BT /F1 9.80 Tf 48.00 718.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 718.89 Td (ANSYS, ABAQUS, and Midas Civil export content.) Tj ET
+BT /F1 9.80 Tf 48.00 704.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 704.69 Td (Empty stress-point export paths.) Tj ET
+BT /F1 9.80 Tf 48.00 690.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 690.49 Td (UTF-8 export paths.) Tj ET
+BT /F1 10.00 Tf 48.00 676.29 Td (The optional GUI smoke test target is SectionPropertySmokeTest. When Qt Widgets and Qt Test are) Tj ET
+BT /F1 10.00 Tf 48.00 662.49 Td (available, it constructs the GUI using the offscreen Qt platform, switches through the parametric) Tj ET
+BT /F1 10.00 Tf 48.00 648.69 Td (section types, checks property and stress table behavior, verifies mesh scene content, and builds) Tj ET
+BT /F1 10.00 Tf 48.00 634.89 Td (the documented three-plate Canvas U-shape with area 2960 mm2.) Tj ET
+BT /F1 10.00 Tf 48.00 616.09 Td (The defect log records closed issues in calculation, geometry, export, integration, and GUI Canvas) Tj ET
+BT /F1 10.00 Tf 48.00 602.29 Td (editing. Resolved issues include implementation of previously missing warping/shear-center fields,) Tj ET
+BT /F1 10.00 Tf 48.00 588.49 Td (ANSYS centroid-offset handling, empty stress-point export handling, merge conflict resolution for) Tj ET
+BT /F1 10.00 Tf 48.00 574.69 Td (FEM export work, and Canvas endpoint dragging.) Tj ET
+BT /F1 10.00 Tf 48.00 555.89 Td (The GitHub Actions workflow builds and tests the no-GUI path on Ubuntu and macOS, and includes a) Tj ET
+BT /F1 10.00 Tf 48.00 542.09 Td (Windows core job. Each job configures with SPT_QT_VERSION=OFF, builds, runs CTest, and runs the) Tj ET
+BT /F1 10.00 Tf 48.00 528.29 Td (examples.) Tj ET
+BT /F2 15.00 Tf 48.00 501.49 Td (13. Local Verification Evidence) Tj ET
+BT /F1 10.00 Tf 48.00 480.49 Td (The following commands were run locally for this report in a safe no-GUI configuration:) Tj ET
+0.960 g 45.00 384.29 505.28 83.40 re f 0 g
+0.820 G 0.35 w 45.00 384.29 505.28 83.40 re S 0 G
+BT /F3 7.80 Tf 48.00 453.69 Td (cmake -S . -B build-final-report -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF) Tj ET
+BT /F3 7.80 Tf 48.00 443.49 Td (cmake --build build-final-report --config Release) Tj ET
+BT /F3 7.80 Tf 48.00 433.29 Td (ctest --test-dir build-final-report --output-on-failure) Tj ET
+BT /F3 7.80 Tf 48.00 423.09 Td (./build-final-report/Library/bin/example1_parametric) Tj ET
+BT /F3 7.80 Tf 48.00 412.89 Td (./build-final-report/Library/bin/example2_canvas) Tj ET
+BT /F3 7.80 Tf 48.00 402.69 Td (./build-final-report/Library/bin/example3_dll_batch) Tj ET
+BT /F3 7.80 Tf 48.00 392.49 Td (git diff --check) Tj ET
+BT /F1 10.00 Tf 48.00 377.29 Td (Observed results:) Tj ET
+BT /F1 9.80 Tf 48.00 358.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 358.49 Td (CMake configured successfully with AppleClang.) Tj ET
+BT /F1 9.80 Tf 48.00 344.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 344.29 Td (Qt was intentionally disabled for the verification build.) Tj ET
+BT /F1 9.80 Tf 48.00 330.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 330.09 Td (SectionPropertyCore, SectionPropertyApi, examples, and SectionPropertyTests built successfully.) Tj ET
+BT /F1 9.80 Tf 48.00 315.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 315.89 Td (CTest executed the aggregated core/API regression target successfully.) Tj ET
+BT /F1 9.80 Tf 48.00 301.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 301.69 Td (example1_parametric printed H-section area 6520 mm2, Cw = 3.00833e+10 mm6, and shear center \(50,) Tj ET
+BT /F1 9.80 Tf 63.00 288.49 Td (125\) mm.) Tj ET
+BT /F1 9.80 Tf 48.00 274.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 274.29 Td (example2_canvas printed Canvas area 2960 mm2 and centroid \(50, 60\) mm.) Tj ET
+BT /F1 9.80 Tf 48.00 260.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 260.09 Td (example3_dll_batch printed successful H-section and pipe-section batch API results.) Tj ET
+BT /F1 9.80 Tf 48.00 245.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 245.89 Td (git diff --check reported no whitespace errors.) Tj ET
+BT /F1 10.00 Tf 48.00 231.69 Td (This verification confirms the local no-GUI core/API build and example workflows. It does not) Tj ET
+BT /F1 10.00 Tf 48.00 217.89 Td (replace the separately documented Windows Qt deployment checklist or solver-side FEM acceptance.) Tj ET
+BT /F2 15.00 Tf 48.00 191.09 Td (14. User Documentation and Usage Guide) Tj ET
+BT /F1 10.00 Tf 48.00 170.09 Td (The user-facing workflow is documented by the project and can be summarized as follows.) Tj ET
+BT /F1 10.00 Tf 48.00 151.29 Td (For predefined sections, the user selects a section type, enters the required dimensions, applies) Tj ET
+BT /F1 10.00 Tf 48.00 137.49 Td (the calculation, and reviews the property table. H, box, pipe, and crane girder parameter names) Tj ET
+BT /F1 10.00 Tf 48.00 123.69 Td (match the API definitions. Invalid or physically impossible combinations produce diagnostics; users) Tj ET
+BT /F1 10.00 Tf 48.00 109.89 Td (are expected to correct input values and recalculate.) Tj ET
+BT /F1 10.00 Tf 48.00 91.09 Td (For stress output points, the user reviews the generated points, edits global coordinates if) Tj ET
+BT /F1 10.00 Tf 48.00 77.29 Td (needed, and observes updated principal coordinates. Stress points are output locations for) Tj ET
+BT /F1 10.00 Tf 48.00 63.49 Td (reporting; they are not required to coincide with mesh nodes.) Tj ET
+endstream
+endobj
+21 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 20 0 R >>
+endobj
+22 0 obj
+<< /Length 6940 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (For mesh review, the user opens the FE Mesh tab and adjusts the refinement factor. The generated) Tj ET
+BT /F1 10.00 Tf 48.00 776.09 Td (mesh gives visual feedback and summary data. It is not presented as a solver mesh.) Tj ET
+BT /F1 10.00 Tf 48.00 757.29 Td (For Canvas sections, the user defines plate centerlines and thicknesses using either the table or) Tj ET
+BT /F1 10.00 Tf 48.00 743.49 Td (graphical drawing tools. The Canvas builder checks for numeric coordinates, positive thickness,) Tj ET
+BT /F1 10.00 Tf 48.00 729.69 Td (nonzero segment length, and unique explicit IDs. When validation succeeds, the Canvas section) Tj ET
+BT /F1 10.00 Tf 48.00 715.89 Td (becomes the active model and the property table, stress points, previews, and mesh update.) Tj ET
+BT /F1 10.00 Tf 48.00 697.09 Td (For export, the user or API client chooses CSV, JSON, ANSYS, ABAQUS, or Midas Civil output. Export) Tj ET
+BT /F1 10.00 Tf 48.00 683.29 Td (failures generally indicate an invalid or unwritable target path.) Tj ET
+BT /F1 10.00 Tf 48.00 664.49 Td (Common troubleshooting guidance includes:) Tj ET
+BT /F1 9.80 Tf 48.00 645.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 645.69 Td (Confirm that all required parameters are present and positive.) Tj ET
+BT /F1 9.80 Tf 48.00 631.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 631.49 Td (For pipes, confirm that thickness is less than half of the outer diameter.) Tj ET
+BT /F1 9.80 Tf 48.00 617.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 617.29 Td (For box sections, confirm that outer dimensions leave room for web thicknesses.) Tj ET
+BT /F1 9.80 Tf 48.00 603.09 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 603.09 Td (Treat non-reference crane girder warnings as an indication of approximate plate-graph behavior.) Tj ET
+BT /F1 9.80 Tf 48.00 588.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 588.89 Td (Confirm that export paths are writable.) Tj ET
+BT /F1 9.80 Tf 48.00 574.69 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 574.69 Td (If the GUI target is not built, confirm that Qt is installed and SPT_QT_VERSION is not OFF.) Tj ET
+BT /F2 15.00 Tf 48.00 552.49 Td (15. Developer Documentation and Build Instructions) Tj ET
+BT /F1 10.00 Tf 48.00 531.49 Td (The development workflow requires CMake 3.16 or later, a C++17 compiler, and Git. Qt Widgets is) Tj ET
+BT /F1 10.00 Tf 48.00 517.69 Td (optional. Qt 5 can be selected with SPT_QT_VERSION=5, Qt 6 with SPT_QT_VERSION=6, auto-discovery) Tj ET
+BT /F1 10.00 Tf 48.00 503.89 Td (with AUTO, and no GUI with OFF.) Tj ET
+BT /F1 10.00 Tf 48.00 485.09 Td (The portable no-GUI build is:) Tj ET
+0.960 g 45.00 429.69 505.28 42.60 re f 0 g
+0.820 G 0.35 w 45.00 429.69 505.28 42.60 re S 0 G
+BT /F3 7.80 Tf 48.00 458.29 Td (cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF) Tj ET
+BT /F3 7.80 Tf 48.00 448.09 Td (cmake --build build) Tj ET
+BT /F3 7.80 Tf 48.00 437.89 Td (ctest --test-dir build --output-on-failure) Tj ET
+BT /F1 10.00 Tf 48.00 422.69 Td (This path builds the core static library, shared API, examples, and tests without Qt.) Tj ET
+BT /F1 10.00 Tf 48.00 403.89 Td (Qt 5 and Qt 6 builds follow the same CMake structure but include a Qt prefix path. When Qt Widgets) Tj ET
+BT /F1 10.00 Tf 48.00 390.09 Td (is detected, CMake builds SectionPropertyGui. When Qt Test is also detected, CMake builds and) Tj ET
+BT /F1 10.00 Tf 48.00 376.29 Td (registers SectionPropertySmokeTest.) Tj ET
+BT /F1 10.00 Tf 48.00 357.49 Td (On Windows, the documented core/API build uses Visual Studio 2022 and SPT_QT_VERSION=OFF. The GUI) Tj ET
+BT /F1 10.00 Tf 48.00 343.69 Td (deployment flow uses build_windows.bat, which detects supported Qt installations, configures the) Tj ET
+BT /F1 10.00 Tf 48.00 329.89 Td (build, runs CTest, and deploys the GUI executable with windeployqt. The Windows verification) Tj ET
+BT /F1 10.00 Tf 48.00 316.09 Td (checklist also identifies expected artifacts such as SectionPropertyTool.dll,) Tj ET
+BT /F1 10.00 Tf 48.00 302.29 Td (SectionPropertyTool.lib, SectionPropertyCore.lib, SectionPropertyTests.exe,) Tj ET
+BT /F1 10.00 Tf 48.00 288.49 Td (SectionPropertySmokeTest.exe, example executables, and SectionPropertyGui.exe.) Tj ET
+BT /F1 10.00 Tf 48.00 269.69 Td (The CMake targets are:) Tj ET
+0.900 g 48.00 233.13 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 233.13 499.28 17.76 re S 0 G
+BT /F2 8.00 Tf 51.50 237.89 Td (Target) Tj ET
+0.750 G 0.30 w 207.77 250.89 m 207.77 233.13 l S 0 G
+BT /F2 8.00 Tf 211.27 237.89 Td (Purpose) Tj ET
+1.000 g 48.00 215.37 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 215.37 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 220.13 Td (SectionPropertyCore) Tj ET
+0.750 G 0.30 w 207.77 233.13 m 207.77 215.37 l S 0 G
+BT /F1 8.00 Tf 211.27 220.13 Td (Core geometry, calculation, mesh, stress, and export library) Tj ET
+0.985 g 48.00 197.61 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 197.61 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 202.37 Td (SectionPropertyApi) Tj ET
+0.750 G 0.30 w 207.77 215.37 m 207.77 197.61 l S 0 G
+BT /F1 8.00 Tf 211.27 202.37 Td (Shared library exported as SectionPropertyTool) Tj ET
+1.000 g 48.00 179.85 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 179.85 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 184.61 Td (SectionPropertyTests) Tj ET
+0.750 G 0.30 w 207.77 197.61 m 207.77 179.85 l S 0 G
+BT /F1 8.00 Tf 211.27 184.61 Td (Aggregated core/API test executable) Tj ET
+0.985 g 48.00 162.09 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 162.09 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 166.85 Td (example1_parametric) Tj ET
+0.750 G 0.30 w 207.77 179.85 m 207.77 162.09 l S 0 G
+BT /F1 8.00 Tf 211.27 166.85 Td (H-section API example) Tj ET
+1.000 g 48.00 144.33 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 144.33 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 149.09 Td (example2_canvas) Tj ET
+0.750 G 0.30 w 207.77 162.09 m 207.77 144.33 l S 0 G
+BT /F1 8.00 Tf 211.27 149.09 Td (Canvas section API example) Tj ET
+0.985 g 48.00 126.57 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 126.57 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 131.33 Td (example3_dll_batch) Tj ET
+0.750 G 0.30 w 207.77 144.33 m 207.77 126.57 l S 0 G
+BT /F1 8.00 Tf 211.27 131.33 Td (Batch C API example) Tj ET
+1.000 g 48.00 108.81 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 108.81 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 113.57 Td (SectionPropertyGui) Tj ET
+0.750 G 0.30 w 207.77 126.57 m 207.77 108.81 l S 0 G
+BT /F1 8.00 Tf 211.27 113.57 Td (Optional Qt Widgets GUI) Tj ET
+0.985 g 48.00 91.05 499.28 17.76 re f 0 g
+0.720 G 0.35 w 48.00 91.05 499.28 17.76 re S 0 G
+BT /F1 8.00 Tf 51.50 95.81 Td (SectionPropertySmokeTest) Tj ET
+0.750 G 0.30 w 207.77 108.81 m 207.77 91.05 l S 0 G
+BT /F1 8.00 Tf 211.27 95.81 Td (Optional offscreen Qt GUI smoke test) Tj ET
+BT /F1 10.00 Tf 48.00 83.05 Td (The developer guide also describes extension points. Adding a new section type requires changes to) Tj ET
+BT /F1 10.00 Tf 48.00 69.25 Td (the core SectionType, API enum, API conversion, geometry builder, calculation/mesh/drawing paths,) Tj ET
+endstream
+endobj
+23 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 22 0 R >>
+endobj
+24 0 obj
+<< /Length 4834 >>
+stream
+BT /F1 10.00 Tf 48.00 789.89 Td (stress point behavior when needed, tests, and documentation. Adding a new export format requires) Tj ET
+BT /F1 10.00 Tf 48.00 776.09 Td (extending the core and API export enums, routing through the API conversion layer, adding an) Tj ET
+BT /F1 10.00 Tf 48.00 762.29 Td (exporter method, adding integration tests, and documenting acceptance status honestly.) Tj ET
+BT /F1 10.00 Tf 48.00 743.49 Td (No third-party geometry or meshing dependency is bundled. Future geometry or meshing backends) Tj ET
+BT /F1 10.00 Tf 48.00 729.69 Td (should be isolated behind the existing geometry and mesh modules.) Tj ET
+BT /F2 15.00 Tf 48.00 702.89 Td (16. Validation Boundaries and Future Work) Tj ET
+BT /F1 10.00 Tf 48.00 681.89 Td (The project is a functional engineering software deliverable for the documented scope. The) Tj ET
+BT /F1 10.00 Tf 48.00 668.09 Td (remaining items are validation or hardening boundaries:) Tj ET
+BT /F1 9.80 Tf 48.00 649.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 649.29 Td (Windows Qt deployment: final windeployqt packaging and visual/manual runtime inspection should be) Tj ET
+BT /F1 9.80 Tf 63.00 636.09 Td (completed on an interactive Windows machine with the documented Qt installation.) Tj ET
+BT /F1 9.80 Tf 48.00 621.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 621.89 Td (FEM solver acceptance: ANSYS, ABAQUS, and Midas Civil writers are implemented and) Tj ET
+BT /F1 9.80 Tf 63.00 608.69 Td (integration-tested for generated content, but generated files should be accepted inside the target) Tj ET
+BT /F1 9.80 Tf 63.00 595.49 Td (solver applications before production solver use.) Tj ET
+BT /F1 9.80 Tf 48.00 581.29 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 581.29 Td (Non-reference crane girder geometry: arbitrary crane girder parameter sets use approximate) Tj ET
+BT /F1 9.80 Tf 63.00 568.09 Td (plate-graph behavior until complete construction rules are confirmed or formally accepted.) Tj ET
+BT /F1 9.80 Tf 48.00 553.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 553.89 Td (DOCX manual package: Documents/User Manual.docx is available, but final formatting and packaging) Tj ET
+BT /F1 9.80 Tf 63.00 540.69 Td (review remains pending.) Tj ET
+BT /F1 9.80 Tf 48.00 526.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 526.49 Td (Documentation maintenance: older notes such as parts of Documents/DLL_Interface.md and) Tj ET
+BT /F1 9.80 Tf 63.00 513.29 Td (tests/gui_smoke/README.md should be reconciled with the current export and GUI smoke-test) Tj ET
+BT /F1 9.80 Tf 63.00 500.09 Td (implementation.) Tj ET
+BT /F1 9.80 Tf 48.00 485.89 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 485.89 Td (Requirements traceability: a formal traceability matrix linking source requirements, code modules,) Tj ET
+BT /F1 9.80 Tf 63.00 472.69 Td (tests, and documentation would improve future review packages.) Tj ET
+BT /F1 9.80 Tf 48.00 458.49 Td (-) Tj ET
+BT /F1 9.80 Tf 63.00 458.49 Td (Mesh capability: the current mesh is a visualization mesh; a solver-quality meshing backend would) Tj ET
+BT /F1 9.80 Tf 63.00 445.29 Td (be future work if solver mesh export becomes a requirement.) Tj ET
+BT /F2 15.00 Tf 48.00 423.09 Td (17. Conclusion) Tj ET
+BT /F1 10.00 Tf 48.00 402.09 Td (Beam Element Section Property Tool is suitable for submission as a functional engineering software) Tj ET
+BT /F1 10.00 Tf 48.00 388.29 Td (deliverable. The project includes a C++17 calculation core, C-compatible shared-library API,) Tj ET
+BT /F1 10.00 Tf 48.00 374.49 Td (optional Qt GUI, examples, automated tests, numerical validation material, build scripts, CI) Tj ET
+BT /F1 10.00 Tf 48.00 360.69 Td (configuration, and user/developer documentation.) Tj ET
+BT /F1 10.00 Tf 48.00 341.89 Td (The implementation covers the documented section types and workflows: parametric H, box, pipe,) Tj ET
+BT /F1 10.00 Tf 48.00 328.09 Td (crane girder reference behaviour, Canvas thin-walled sections, property calculations, stress output) Tj ET
+BT /F1 10.00 Tf 48.00 314.29 Td (points, coordinate transformations, visualization mesh generation, and multiple export formats. The) Tj ET
+BT /F1 10.00 Tf 48.00 300.49 Td (local no-GUI verification confirms that the core/API build, aggregated CTest target, and example) Tj ET
+BT /F1 10.00 Tf 48.00 286.69 Td (workflows execute successfully in the current environment.) Tj ET
+BT /F1 10.00 Tf 48.00 267.89 Td (The remaining work is appropriately framed as external validation and future hardening. Manual) Tj ET
+BT /F1 10.00 Tf 48.00 254.09 Td (Windows Qt deployment, solver-side FEM acceptance, DOCX final review, documentation reconciliation,) Tj ET
+BT /F1 10.00 Tf 48.00 240.29 Td (and confirmation of arbitrary crane girder construction rules are important next steps, but they do) Tj ET
+BT /F1 10.00 Tf 48.00 226.49 Td (not change the status of the delivered core/API implementation for the documented project scope.) Tj ET
+endstream
+endobj
+25 0 obj
+<< /Type /Page /Parent 26 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 1 0 R /F2 2 0 R /F3 3 0 R >> >> /Contents 24 0 R >>
+endobj
+26 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R 19 0 R 21 0 R 23 0 R 25 0 R] /Count 11 >>
+endobj
+27 0 obj
+<< /Type /Catalog /Pages 26 0 R >>
+endobj
+xref
+0 28
+0000000000 65535 f
+0000000015 00000 n
+0000000085 00000 n
+0000000160 00000 n
+0000000228 00000 n
+0000005982 00000 n
+0000006135 00000 n
+0000014725 00000 n
+0000014878 00000 n
+0000020126 00000 n
+0000020279 00000 n
+0000026273 00000 n
+0000026428 00000 n
+0000032591 00000 n
+0000032746 00000 n
+0000039854 00000 n
+0000040009 00000 n
+0000045058 00000 n
+0000045213 00000 n
+0000050819 00000 n
+0000050974 00000 n
+0000056880 00000 n
+0000057035 00000 n
+0000064028 00000 n
+0000064183 00000 n
+0000069070 00000 n
+0000069225 00000 n
+0000069352 00000 n
+trailer
+<< /Size 28 /Root 27 0 R >>
+startxref
+69403
+%%EOF
