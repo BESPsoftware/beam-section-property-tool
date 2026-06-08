@@ -1,247 +1,382 @@
 # Beam Element Section Property Tool - Final Report
 
-**Subtitle:** Functional engineering software deliverable for beam cross-section property calculation  
-**Repository:** `https://github.com/BESPsoftware/beam-section-property-tool`  
-**Technology stack:** C++17, CMake, C ABI/shared library, optional Qt Widgets GUI, CTest, GitHub Actions  
-**Main deliverables:** calculation core, shared-library API, optional GUI, examples, tests, validation material, build scripts, user/developer documentation  
-**Date:** 2026-06-08  
-**Submission context:** Academic/professional software project submission  
+**Subtitle:** Functional engineering software deliverable for beam cross-section property calculation
+**Repository:** `https://github.com/BESPsoftware/beam-section-property-tool`
+**Technology stack:** C++17, CMake, C-compatible shared library, optional Qt Widgets GUI, CTest, GitHub Actions
+**Final report date:** 2026-06-08
+**Deliverable status:** Core/API implementation complete for the documented scope; external/manual validation items identified separately
+**Submission context:** Academic/professional software project submission
 **Team/course:** Not specified in the repository package
 
 ---
 
 ## 1. Executive Summary
 
-Beam Element Section Property Tool is a C++17 engineering software project for modelling beam cross-sections and calculating section properties needed in structural and finite-element workflows. It supports predefined parametric sections and user-defined thin-walled plate sections, computes geometric and torsion-related properties, generates stress output points, provides visualization mesh data, and exports results through several engineering-oriented formats.
+Beam Element Section Property Tool is a C++17 engineering software project for modelling beam cross-sections and calculating section properties used in structural and finite-element workflows. It supports predefined parametric sections, user-defined thin-walled plate sections, stress output locations, lightweight mesh visualization, and result export for downstream review.
 
-The repository contains a complete functional implementation for the documented core/API scope: a reusable calculation core, a C-compatible shared-library interface, optional Qt Widgets GUI, CMake build configuration, example programs, automated tests, numerical validation material, and user/developer documentation. A local no-GUI verification build was executed for this report; the core/API build completed successfully, the aggregated CTest target passed, and all three example programs ran successfully.
+The project deliverable includes a reusable calculation core, a C-compatible shared-library API, an optional Qt Widgets GUI, example programs, CMake build configuration, Windows build/deployment support, automated tests, numerical validation material, and user/developer documentation. The same calculation and data-model layers are used by the API and GUI, so interactive and programmatic workflows are built on the same core implementation.
 
-The remaining work is bounded and external to the verified core implementation: manual Windows Qt deployment/visual inspection, solver-side acceptance of FEM export files in ANSYS/ABAQUS/Midas Civil, final DOCX manual review, and confirmation of complete construction rules for arbitrary non-reference crane girder geometry.
+The verified local no-GUI build performed for this report completed successfully. CMake configured the core/API build, the project built successfully, CTest executed the aggregated core/API regression target successfully, all three example programs ran, and `git diff --check` reported no whitespace issues.
 
-## 2. Assignment Coverage
+Remaining work is bounded as validation and hardening rather than missing core implementation: manual Windows Qt deployment and visual inspection, solver-side acceptance of ANSYS/ABAQUS/Midas Civil outputs, confirmation or formal sign-off of arbitrary non-reference crane girder construction rules, final DOCX manual review, and small documentation maintenance tasks.
+
+## 2. Project Scope and Objectives
+
+The tool addresses a common engineering software need: computing cross-section properties of beam elements from consistent geometric inputs. These properties support structural review, stress recovery workflows, and finite-element model preparation. The project focuses on reproducible section-property calculation and integration surfaces rather than a full structural solver.
+
+The intended users are:
+
+- Engineers and evaluators who need section properties and stress output points for common beam section geometries.
+- Users who need to define thin-walled plate sections interactively through a Canvas workflow.
+- Developers or automation scripts that need a C-compatible shared-library API.
+- Downstream FEM users who need generated section/property data for solver review.
+
+The expected workflow is:
+
+1. Select a predefined section type or define a Canvas thin-walled section.
+2. Enter dimensions in millimeters.
+3. Validate and calculate the section model.
+4. Review area, inertias, centroid, principal axes, shear areas, torsion-related values, warping constant, and shear center.
+5. Inspect or edit stress output points.
+6. Review a lightweight visualization mesh.
+7. Export results through CSV, JSON, or FEM-oriented text formats.
+
+The supported section types are:
+
+- H section (`SPT_H_SECTION`)
+- Hollow box section (`SPT_BOX_SECTION`)
+- Pipe section (`SPT_PIPE_SECTION`)
+- Quayside crane girder (`SPT_CRANE_GIRDER`)
+- Canvas thin-walled section (`SPT_CANVAS`)
+
+The primary outputs are `Area`, `Jz`, `Jy`, `Jyz`, `Jzo`, `Jyo`, `Jx`, `Az`, `Ay`, `cy`, `cz`, `theta`, `Cw`, `ys`, and `zs`, plus stress point coordinates, mesh counts, and export files.
+
+## 3. Assignment Coverage
 
 | Required area | Repository evidence | Coverage statement | Status |
 |---|---|---|---|
-| Requirements and design documents | `Documents/source_requirements/`, `README.md`, `Documents/Architecture.md`, `Documents/Implementation_Status.md`, `Documents/Developer_Guide.md`, `tests/fixtures/test_data_reference.json` | Requirements are derived from source materials, workbook reference data, repository documentation, status records, and executable regression evidence. | Available and evidence-based |
-| Development artifacts | `Source/`, `Examples/`, `CMakeLists.txt`, `build_windows.bat`, `.github/workflows/cmake.yml` | Core calculation, API, GUI, exporters, examples, and build configuration are implemented for the documented project scope. | Implemented |
-| Testing and quality assurance | `tests/`, `Documents/Test_Report.md`, `Documents/Numerical_Validation_Report.md`, `Documents/Final_Acceptance_Checklist.md`, `Documents/Defect_Log.md`, local CMake/CTest run | Automated core/API regression and integration coverage is present and passed in the local no-GUI verification run. | Implemented and verified |
-| User documentation | `Documents/User Manual.md`, `Documents/API_Reference.md`, `Documents/Developer_Guide.md`, `Documents/Windows_Qt_Verification.md`, `README.md`, `Documents/User Manual.docx` | User, API, developer, and Windows verification documentation is available; DOCX packaging still needs final manual review. | Available, final manual review pending |
-| External/manual validation | `Documents/Windows_Qt_Verification.md`, `Documents/Final_Acceptance_Checklist.md`, `Documents/Test_Report.md` | Windows Qt deployment and solver-side FEM acceptance are documented as pending manual/external validation steps. | Available, external validation pending |
+| Requirements and design documents | Source requirement PDF/workbook, architecture notes, implementation status, README, developer guide, tests and validation fixtures | Requirements are represented through source materials, reference data, design notes, and executable evidence rather than a single monolithic SRS. | Available and evidence-based |
+| Development artifacts | `Source/`, `Examples/`, `CMakeLists.txt`, `build_windows.bat`, GitHub Actions workflow | The calculation core, shared API, optional GUI, exporters, examples, build targets, and platform build support are implemented for the documented scope. | Implemented |
+| Testing and quality assurance | CTest target, regression tests, API integration tests, Qt smoke target, numerical validation report, acceptance checklist, defect log, CI workflow | Core/API tests and examples pass in the local no-GUI verification; GUI smoke and Windows deployment validation are documented separately. | Implemented and verified |
+| User documentation | User manual, API reference, developer guide, Windows Qt verification guide, README, DOCX user manual package | Build, usage, API, GUI workflow, export behavior, and troubleshooting guidance are available; DOCX final formatting review remains a manual packaging step. | Available, final manual review pending |
+| External/manual validation | Windows Qt verification checklist, FEM solver acceptance notes, final acceptance checklist | Manual Windows deployment and solver-side acceptance are identified as external validation tasks beyond local core/API verification. | Available, external validation pending |
 
-## 3. Project Overview
+## 4. Functional Requirements and Implemented Capabilities
 
-The tool is intended for engineers, developers, and project evaluators who need reproducible beam cross-section property calculations. It can be used interactively through the optional Qt GUI or programmatically through the shared-library API declared in `Source/api/section_property_tool.h`.
+The software implements section creation, validation, calculation, visualization, API integration, and export workflows for the documented beam-section scope.
 
-Supported section inputs are:
+### Supported Geometry Inputs
 
-- Parametric H section, box section, pipe section, and quayside crane girder definitions.
-- User-defined Canvas thin-walled sections supplied as plate centerline segments with thicknesses.
+The predefined parametric section inputs use named dimensions. The API and GUI use the same parameter names:
 
-Expected input dimensions are in millimeters. The principal outputs are:
+- H section: `A`, `H`, `e`, `f`
+- Box section: `A`, `B`, `H`, `D`, `E`, `H1`, `D1`, `E1`
+- Pipe section: `Do`, `t`
+- Quayside crane girder: `A`, `B`, `G`, `D`, `e`, `f`, `H`, `W`, `M`, `N`, `p`, `s`, `t`, `u`, `M1`, `k`, `k1`, `h`, `h1`
+- Canvas section: plate centerline start/end coordinates, plate thickness, material id, and optional plate id
 
-- Section properties: `Area`, `Jz`, `Jy`, `Jyz`, `Jzo`, `Jyo`, `Jx`, `Az`, `Ay`, `cy`, `cz`, `theta`, `Cw`, `ys`, and `zs`.
-- Default or user-edited stress output points in global and principal coordinates.
-- Lightweight visualization mesh data and mesh counts.
-- CSV, JSON, ANSYS, ABAQUS, and Midas Civil export files.
+Canvas sections allow arbitrary user-defined thin-walled plate layouts. Plates are modelled by centerline endpoints and thickness; the implementation creates plate polygons and a rectangularized component representation for property and mesh workflows.
 
-The standard user workflow is documented in `Documents/User Manual.md`: choose or create a section, enter geometry, calculate, review properties and graphics, inspect stress points and mesh, and export results when required.
+### Input Validation
 
-## 4. Requirements and Design Evidence
+The builder validates required parameters and rejects invalid inputs before calculation. Examples include:
 
-The repository uses a documentation-driven evidence model rather than a single monolithic requirements specification. Requirements are derived from the original source requirement files, workbook reference data, repository documentation, implementation status records, and tests.
+- Required parametric dimensions must be positive.
+- H-section web thickness must not exceed flange width.
+- Box-section outer width and side web geometry must leave valid clearances.
+- Pipe thickness must be less than half the outer diameter.
+- Canvas plates must have positive thickness and nonzero length.
+- Explicit Canvas plate identifiers must be unique.
 
-Primary requirement and design evidence includes:
+Invalid input produces diagnostics rather than silently continuing.
 
-- `Documents/source_requirements/Beam Element Section Property Tool.pdf`
-- `Documents/source_requirements/Test Data.xls`
-- `tests/fixtures/test_data_reference.json`
-- `README.md`
-- `Documents/README.md`
-- `Documents/Architecture.md`
-- `Documents/User Manual.md`
-- `Documents/API_Reference.md`
-- `Documents/Developer_Guide.md`
-- `Documents/Implementation_Status.md`
-- `Documents/Final_Acceptance_Checklist.md`
+### Calculated Results
 
-### Functional Scope
+The property result structure contains:
 
-The documented and implemented functional scope includes:
+- Cross-sectional area.
+- Second moments about global axes.
+- Product of inertia.
+- Principal second moments.
+- Torsion-related constant used by the tool.
+- Shear areas.
+- Centroid coordinates.
+- Principal-axis rotation.
+- Warping constant.
+- Shear-center coordinates.
 
-- Build H, box, pipe, quayside crane girder, and Canvas thin-walled sections.
-- Validate required geometric parameters and reject invalid input combinations.
-- Calculate area, centroid, second moments, product of inertia, principal axes, torsion-related values, shear areas, warping constant, and shear-center coordinates.
-- Generate default stress output points and transform points between global and principal coordinates.
-- Create lightweight triangular visualization meshes and expose mesh counts through the API.
-- Provide a stable C-compatible shared-library interface with opaque handles and explicit destroy/free functions.
-- Provide an optional Qt Widgets GUI with General, Stress Points, FE Mesh, and Canvas workflows.
-- Export results to CSV, JSON, ANSYS, ABAQUS, and Midas Civil formats.
-- Provide examples for parametric, Canvas, and batch API usage.
+Stress output points are generated for each section type. They include global `y/z` coordinates and principal `y0/z0` coordinates. The stress point engine supports coordinate transforms and validation against the current section geometry.
 
-### Non-Functional Expectations
+### Mesh and Visualization
 
-The repository evidence supports the following non-functional expectations:
+The mesh engine creates lightweight triangular visualization meshes. Rectangular and plate-based sections are meshed through rectangular components; pipe sections are meshed as annular triangular subdivisions. The mesh is intended for display and summary counts, not as a solver-quality FEM mesh.
 
-- C++17 implementation built with CMake 3.16 or later.
-- Core/API build path independent of Qt.
-- Optional Qt 5 or Qt 6 GUI selected through `SPT_QT_VERSION`.
-- C ABI designed around plain structs, opaque handles, explicit lifecycle management, and thread-local error reporting.
-- Core calculation code separated from GUI code.
-- UTF-8-aware export path handling on Windows.
-- Deterministic regression tests using workbook-derived tolerances.
-- No bundled third-party geometry or meshing dependency, as documented in `third_party/README.md`.
+### Export and Integration
 
-### Design Assumptions and Constraints
+The exporter supports:
 
-Important design assumptions are explicitly documented:
+- CSV property and stress point output.
+- JSON property, stress point, and mesh summary output.
+- ANSYS general beam-section card output.
+- ABAQUS beam general section output.
+- Midas Civil user-defined section output.
 
-- All geometry inputs are in millimeters.
-- H, box, and pipe reference cases use analytical formulas aligned to the supplied spreadsheet.
-- Canvas and non-reference crane girder sections use plate/rectangle representations.
-- The supplied crane girder workbook reference case is treated as authoritative because the source PDF diagram does not fully define arbitrary construction coordinates.
-- Non-reference crane girder calculations are approximate and emit diagnostics.
-- The FE mesh is a visualization mesh, not a solver-quality FEM mesh.
-- FEM export writers are implemented and integration-tested for generated content; solver-side acceptance remains an external validation task.
+The C-compatible API exposes these workflows for use from C, C++, and foreign-function interfaces.
 
-A formal traceability matrix linking each source requirement to code, tests, and documentation would be a useful future documentation improvement, but its absence does not prevent the repository from demonstrating a coherent implemented scope.
+## 5. Design Requirements, Assumptions, and Constraints
 
-## 5. Architecture and Design
+All geometric inputs are interpreted in millimeters. Area and shear area are reported in square millimeters, inertias and torsion-related values in millimeters to the fourth power, warping constant in millimeters to the sixth power, coordinates in millimeters, and principal-axis angle in radians.
 
-`Documents/Architecture.md` describes a modular architecture with a clear separation between data modelling, geometry construction, calculation, stress points, meshing, export, API, and GUI layers.
+The project uses double precision internally. GUI tables may display rounded values for readability, but calculations use the core numeric representation.
+
+The source requirement package contains a PDF and an Excel workbook. The workbook data is represented in `tests/fixtures/test_data_reference.json` and is used as numerical reference evidence for H, hollow box, pipe, and the supplied crane girder reference case. The source PDF diagram is also the basis for crane girder geometry labels, but the repository documentation and implementation note that it does not fully define every construction coordinate for arbitrary crane girder inputs.
+
+The main modelling assumptions are:
+
+- H, box, and pipe reference cases use analytical formulas aligned to the supplied workbook.
+- The pipe shear-area value follows the workbook factor rather than a pure half-area idealization.
+- Canvas sections use thin-walled plate centerlines converted to plate polygons and rectangularized property components.
+- Open-section torsion for plate-based sections uses a plate-length and thickness expression.
+- H-section warping constant uses the documented equal-flange formula.
+- Symmetric closed box and pipe sections use zero warping constant as the exact closed-section result represented by the implementation.
+- Crane girder and Canvas shear-center/warping behavior uses numerical open thin-walled sectorial-area integration.
+- The exact crane girder workbook case is treated as authoritative; non-reference crane girder inputs use the available named plate graph and emit an approximate-geometry diagnostic.
+
+The regression tolerances documented by the project are:
+
+- Coordinates, area, and shear area: `max(0.01, 1e-6 * abs(expected))`
+- Inertia and torsion: `max(1.0, 1e-6 * abs(expected))`
+- Principal-axis angle: `1e-8 rad`
+
+These tolerances are encoded in the regression test suite and summarized in the numerical validation report.
+
+## 6. System Architecture and Design Rationale
+
+The architecture is organized around a Qt-independent core with optional user interface and integration layers. This separation allows the core library, API, tests, and examples to build without Qt, while still supporting a GUI when Qt Widgets is available.
 
 The main modules are:
 
-- `Source/common`: shared data model, section types, result structures, diagnostics, mesh and stress-point data.
-- `Source/geometry`: builders and validation for parametric sections and Canvas plate sections.
-- `Source/calculation`: section property calculation engine.
-- `Source/stress`: stress-point generation, validation, and coordinate transforms.
+- `Source/common`: shared data model, section types, property structures, stress point structures, mesh structures, materials, and diagnostics.
+- `Source/geometry`: section builders, parametric geometry construction, Canvas plate validation, plate polygons, contours, and rectangle components.
+- `Source/calculation`: area, centroid, inertia, torsion-related quantities, shear areas, principal axes, warping constant, and shear-center calculations.
+- `Source/stress`: default stress point generation, coordinate transformations, and stress point validation.
 - `Source/mesh`: lightweight triangular visualization mesh generation.
-- `Source/import_export`: CSV, JSON, ANSYS, ABAQUS, and Midas Civil exporters.
-- `Source/api`: C-compatible shared-library wrapper.
-- `Source/gui`: optional Qt Widgets graphical interface.
+- `Source/import_export`: CSV, JSON, ANSYS, ABAQUS, and Midas Civil writers.
+- `Source/api`: C ABI wrapper and exported shared-library interface.
+- `Source/gui`: optional Qt Widgets application.
 
-The documented data flow is:
+The data flow is:
 
 ```text
 GUI/API input
-  -> SectionParameters / PlateSegment[]
-  -> SectionBuilder
-  -> SectionModel
-  -> SectionCalculator
-  -> StressPointEngine
-  -> MeshEngine
-  -> GUI/API/Exporter
+  -> SectionParameters or PlateSegment[]
+  -> SectionBuilder validation and SectionModel construction
+  -> SectionCalculator property calculation
+  -> StressPointEngine stress output point generation
+  -> MeshEngine visualization mesh generation
+  -> GUI display, API return values, or Exporter output files
 ```
 
-This design supports both interactive use and programmatic integration. The GUI and API share the same core data model and calculation engine, which keeps numerical behavior consistent across usage modes.
+This architecture keeps the computational core reusable and testable. The API and GUI are clients of the same core data model. The C API presents stable plain-data boundaries; the GUI presents interactive workflows over the same underlying operations.
 
-## 6. Development Artifacts
+## 7. Implementation Details and Development Artifacts
 
-The repository contains source code, build configuration, examples, tests, documentation, and platform-specific build support.
+The implementation is concentrated in a small number of focused modules.
 
-### Core Implementation
+`Source/common/DataModel.h` defines the central data structures: section type enums, section parameters, materials, rectangles, plate segments, contours, properties, stress points, mesh data, diagnostics, section models, and calculation results. This common layer allows builders, calculators, exporters, tests, API code, and GUI code to exchange the same objects.
 
-The primary implementation files are:
+`Source/geometry/SectionBuilder.cpp` is responsible for constructing valid section models. It builds H, box, pipe, crane girder, and Canvas sections. For H and box sections it assembles rectangular components and contours. For pipe sections it creates circular contour data. For Canvas sections it validates plate data, generates automatic plate identifiers where needed, converts plate centerlines to polygons, and stores the resulting plates and components. For the crane girder it creates a named plate graph based on the available requirement diagram labels and stores workbook-derived override values for the exact reference case.
 
-- `Source/common/DataModel.h`
-- `Source/geometry/SectionBuilder.cpp`
-- `Source/calculation/SectionCalculator.cpp`
-- `Source/stress/StressPointEngine.cpp`
-- `Source/mesh/MeshEngine.cpp`
-- `Source/import_export/Exporter.cpp`
-- `Source/api/section_property_tool.cpp`
-- `Source/api/section_property_tool.h`
-- `Source/gui/main.cpp`
+`Source/calculation/SectionCalculator.cpp` performs the section property calculations. It implements analytical formulas for supported simple sections, composite rectangle calculations for plate-based sections, principal axes from the inertia tensor, torsion-related values, shear areas, warping constant, and shear-center behavior. Its open thin-walled sectorial-area integration supports crane and Canvas warping/shear-center calculations.
 
-`SectionBuilder` validates input and creates `SectionModel` objects. `SectionCalculator` computes the section properties. `StressPointEngine` generates and transforms stress output points. `MeshEngine` generates visualization meshes. `Exporter` writes engineering output formats. The C API wraps the core through stable handles and plain C data structures.
+`Source/stress/StressPointEngine.cpp` creates default stress output locations and transforms coordinates between global and principal systems. For H, box, and pipe sections it provides section-specific default points. For crane and Canvas sections it uses plate endpoints for default output points. It can also validate whether a stress point lies on or outside the modelled section.
 
-### Engineering Calculations
+`Source/mesh/MeshEngine.cpp` generates visualization mesh data. Rectangular components are divided into triangular cells according to target size or refinement factor. Pipe sections are triangulated as annular subdivisions. The mesh model stores nodes, triangles, boundary edges, and diagnostics.
 
-The calculation implementation supports:
+`Source/import_export/Exporter.cpp` writes output files. CSV and JSON exports provide property and stress-point data. ANSYS, ABAQUS, and Midas Civil writers emit general section/property cards or text sections for downstream solver review. The Windows path logic uses UTF-8 to wide-character conversion so exported files can be written to Unicode paths on Windows.
 
-- Analytical calculations for H sections, box sections, and pipe sections.
-- Composite rectangle calculations for plate-based sections.
-- Principal inertia values and principal-axis angle from the centroidal inertia tensor.
-- Workbook-aligned pipe shear-area factor.
-- Open-section torsion approximation based on plate length and thickness.
-- H-section warping constant and centroidal shear center.
-- Zero warping constant for symmetric closed box and pipe sections.
-- Numerical open thin-walled sectorial-area integration for crane girder and Canvas sections.
+`Source/api/section_property_tool.cpp` wraps the core in a C-compatible interface. It converts API enums and structs to core types, manages opaque handles, allocates/free stress point arrays, exposes mesh counts, routes exports, and provides thread-local error reporting.
 
-For the exact crane girder reference parameter set, the builder stores workbook-derived reference values. For other crane parameter sets, the software builds an approximate named plate graph and reports a diagnostic warning.
+`Source/gui/main.cpp` implements the optional Qt Widgets GUI. It includes the main cross-section window, parameter and property tables, graphics views, stress point editing, mesh visualization, and the Canvas drawing/editing workflow.
 
-### API and Shared Library
+`Examples/` contains three buildable programs:
 
-The shared-library target is `SectionPropertyApi`; the output name is `SectionPropertyTool`. The public API in `Source/api/section_property_tool.h` exposes:
+- `example1_parametric`: creates an H section and prints area, inertia, warping constant, and shear center.
+- `example2_canvas`: creates a three-plate Canvas section and prints area and centroid.
+- `example3_dll_batch`: runs multiple API calculations in a batch-style workflow.
 
-- Version query.
-- Section creation from parametric values or Canvas plate lines.
-- Property calculation.
-- Property, stress-point, and mesh-count retrieval.
-- Stress-point updates.
-- CSV, JSON, ANSYS, ABAQUS, and Midas Civil export.
-- Explicit cleanup functions for sections, results, meshes, and stress-point arrays.
-- Thread-local error retrieval through `spt_get_last_error()`.
+`CMakeLists.txt` builds the static core library, shared API library, tests, examples, optional GUI, and optional GUI smoke test. `build_windows.bat` supports Windows Qt build/deployment workflows with MSVC or MinGW depending on installed Qt paths.
 
-`Documents/API_Reference.md` provides handle lifecycle rules, units, enum values, function descriptions, and a minimal usage example.
+## 8. Engineering Calculations and Validation Approach
 
-### Optional GUI
+The calculation strategy combines analytical formulas, composite geometry calculations, and workbook-based reference validation.
 
-The Qt Widgets GUI in `Source/gui/main.cpp` provides:
+For H sections, the geometry is represented by top flange, web, and bottom flange rectangles. The tool calculates area, centroid, global inertias, shear areas, torsion-related constant, principal axes, and an analytical warping constant. The reference H-section case uses `A = 100 mm`, `H = 210 mm`, `e = 20 mm`, and `f = 12 mm`; the expected area is `6520 mm2`.
 
-- General tab for section selection, parameter editing, property table, and section preview.
-- Stress Points tab for reviewing and editing output points.
-- FE Mesh tab for visualization mesh display and refinement control.
-- Canvas tab for plate table editing, graphical drawing, selection, endpoint dragging, grid display, snap-to-grid, and Canvas section calculation.
+For hollow box sections, the builder constructs bottom plate, top plate, and side web rectangles based on the documented eight parameters. The calculation includes workbook-aligned area, centroid, inertias, torsion-related constant, and shear areas. The reference case uses dimensions including `A = 1320 mm`, `B = 1250 mm`, `H = 2600 mm`, `D = 40 mm`, `E = 16 mm`, `H1 = 600 mm`, `D1 = 22 mm`, and `E1 = 16 mm`; the expected area is `165040 mm2`.
 
-The GUI is optional. If Qt Widgets is not found, CMake still builds the core library, shared API, examples, and tests.
+For pipe sections, the model uses outer diameter `Do` and thickness `t`. The implementation calculates annular area and moments analytically. The reference case uses `Do = 1300 mm` and `t = 14 mm`; the expected area is approximately `56561.234135 mm2`. The documented shear-area value follows a workbook-specific factor slightly above one half of area.
 
-### Build and Configuration
+For the quayside crane girder, the reference parameter set is recovered from the workbook and treated as the numerical acceptance case. The implementation stores the reference properties and stress points for that exact case because the requirement diagram does not fully define arbitrary coordinate construction rules. Other crane parameter sets are built through the available named plate graph and reported as approximate.
 
-`CMakeLists.txt` defines the principal build targets:
+For Canvas thin-walled sections, users provide plate centerlines and thicknesses. The software converts those plates into geometry suitable for property and mesh calculations. The documented example has three plates:
 
-- `SectionPropertyCore`
-- `SectionPropertyApi`
-- `SectionPropertyTests`
-- `example1_parametric`
-- `example2_canvas`
-- `example3_dll_batch`
-- `SectionPropertyGui`, when Qt Widgets is available
-- `SectionPropertySmokeTest`, when Qt Widgets and Qt Test are available
+- bottom: `(0, 0)` to `(100, 0)`, thickness `10`
+- web: `(50, 0)` to `(50, 120)`, thickness `8`
+- top: `(0, 120)` to `(100, 120)`, thickness `10`
 
-`build_windows.bat` documents and automates the Windows Qt build/deployment path for supported Qt installations. `.github/workflows/cmake.yml` builds and tests the no-GUI path on Ubuntu, macOS, and Windows.
+That example reports area `2960 mm2` and centroid `(50, 60) mm`.
 
-## 7. Testing and Quality Assurance
+Principal properties are derived from the centroidal inertia tensor. The documented formula for principal-axis angle is:
 
-Testing and QA evidence is provided through automated C++ tests, validation reports, source reference data, status documents, an acceptance checklist, defect tracking, and CI configuration.
+```text
+theta = 0.5 * atan2(-2 * Jyz, Jy - Jz)
+```
 
-### Automated Test Structure
+The principal inertias are the eigenvalues of the centroidal inertia tensor.
 
-The aggregated CTest target is `SectionPropertyTests`, built from:
+The numerical validation report records workbook expected values against computed values. The summary is:
+
+| Section | Property checks | Stress point checks | Result |
+|---|---:|---:|---|
+| H section | 8/8 | 4/4 | PASS |
+| Hollow box | 8/8 | 4/4 | PASS |
+| Pipe | 8/8 | 4/4 | PASS |
+| Crane girder reference case | 13/13 | 4/4 | PASS |
+
+Across the workbook-backed validation set, the report records 41 numerical checks passing within the encoded tolerances. Additional regression checks cover shear-center and warping-constant behavior. For H sections, the shear center matches the centroid and the warping constant uses the analytical equal-flange formula. For box and pipe sections, the shear center matches the centroid and warping constant is zero for the symmetric closed section representation. For crane and Canvas sections, the implementation uses numerical open thin-walled sectorial-area integration and regression checks expected qualitative behavior such as magnitude, sign, and nonzero offsets.
+
+## 9. API and Integration Interface
+
+The public integration interface is a C-compatible API declared in `Source/api/section_property_tool.h`. It is designed for C, C++, and foreign-function interfaces.
+
+The API uses opaque handles:
+
+- `SptSectionHandle` for built section models.
+- `SptResultHandle` for calculated results.
+- `SptMeshHandle` for generated mesh data.
+
+Each handle has an explicit destroy function. Stress point arrays returned from the API are explicitly released with `spt_free_stress_point_array`. This avoids exposing C++ object ownership across the ABI boundary.
+
+The API lifecycle is:
+
+```text
+spt_create_section_from_parameters(...) or spt_create_section_from_canvas_lines(...)
+spt_calculate_section_properties(...)
+spt_get_result_properties(...)
+spt_get_result_stress_points(...) or spt_create_mesh(...)
+spt_export_results(...)
+spt_destroy_result(...)
+spt_destroy_section(...)
+```
+
+All API functions return `0` on success. Nonzero return values indicate failure, and the caller can inspect `spt_get_last_error()`. The error structure includes code, severity, field, message, and remediation fields. The last error is thread-local in the implementation.
+
+A minimal H-section API workflow is:
+
+```c
+const SptParameter values[] = {
+    {"A", 100.0},
+    {"H", 210.0},
+    {"e", 20.0},
+    {"f", 12.0},
+};
+
+SptSectionParameters params = {SPT_H_SECTION, values, 4};
+SptSectionHandle section = NULL;
+spt_create_section_from_parameters(&params, &section);
+
+SptResultHandle result = NULL;
+spt_calculate_section_properties(section, &result);
+
+SptSectionProperties props;
+spt_get_result_properties(result, &props);
+
+spt_export_results(result, "section.csv", SPT_EXPORT_CSV);
+
+spt_destroy_result(result);
+spt_destroy_section(section);
+```
+
+The shared-library target is `SectionPropertyApi` and the output name is `SectionPropertyTool`. On macOS/Linux the artifact is a `.dylib` or `.so`; on Windows the documented artifacts are `SectionPropertyTool.dll` and `SectionPropertyTool.lib`.
+
+## 10. Graphical User Interface and User Workflow
+
+The GUI is an optional Qt Widgets application. It is not required for the core/API build, but it provides an interactive workflow when Qt is installed.
+
+The main window is organized into four tabs:
+
+- General
+- Stress Points
+- FE Mesh
+- Canvas
+
+The General tab allows users to choose a section type, edit geometry parameters, apply calculations, review the section drawing, and inspect calculated properties. The table displays area, inertias, product of inertia, principal inertias, torsion-related constant, shear areas, centroid, principal-axis angle, warping constant, and shear-center coordinates.
+
+The Stress Points tab lists stress output locations with IDs, global coordinates, and principal coordinates. Editing global `y` or `z` updates the principal coordinates and redraws markers in the graphics view. Reset Defaults recalculates the generated stress points.
+
+The FE Mesh tab displays the lightweight triangular visualization mesh generated from the current section. A refinement factor requests denser or coarser display meshes. This mesh is for visualization and summary counts, not solver-quality export.
+
+The Canvas tab provides advanced graphical input for user-defined thin-walled sections. Users can add rows manually, draw plate centerlines, set plate thickness, assign or auto-generate plate IDs, delete selected plates, clear the Canvas, and build the Canvas section. Selection stays synchronized between the plate table and drawing. Select/Edit mode supports endpoint dragging with table write-back on release. The view supports grid display and snap-to-grid for drawing and editing.
+
+The General, Stress Points, FE Mesh, and Canvas graphics views support zoom, mouse-wheel zoom, panning, fit-to-scene, and reset. After successful parametric recalculation or Canvas build, the GUI refreshes properties, stress points, mesh, and previews from the active section geometry.
+
+## 11. Export and Downstream Workflow Support
+
+Export is available through the shared-library API and implemented in the core exporter module.
+
+CSV output contains a property table and stress point rows. JSON output contains properties, stress points, and a mesh summary. These formats are useful for spreadsheet review, scripting, and downstream data exchange.
+
+ANSYS export writes a Mechanical APDL beam-section card using a general arbitrary section representation. The writer emits `SECTYPE`, `SECOFFSET,BSEC`, and `SECDATA` content. The `SECOFFSET,BSEC` line is specifically included to avoid double-counting centroid offsets in the generated ASEC workflow.
+
+ABAQUS export writes `*BEAM GENERAL SECTION, SECTION=GENERAL` content with area, inertias, product of inertia, torsion-related constant, and section point output when stress points are available.
+
+Midas Civil export writes a Midas Civil Text user-defined section with area, shear areas, torsion-related constant, and inertias.
+
+The API integration tests check generated content for ANSYS, ABAQUS, and Midas Civil, including empty-stress-point behavior. Solver-side acceptance in the target applications is still an external validation step because it requires running the generated cards inside those commercial tools.
+
+## 12. Testing and Quality Assurance
+
+The project uses an aggregated CTest target for core/API coverage plus optional Qt GUI smoke testing when Qt test components are available.
+
+The core/API test executable is `SectionPropertyTests`. It is built from:
 
 - `tests/unit/test_main.cpp`
 - `tests/regression/test_regression.cpp`
 - `tests/integration/test_api.cpp`
 
-The target includes regression checks for workbook-derived section properties, Canvas validation behavior, non-reference crane girder diagnostics, API smoke coverage, mesh counts, export content checks, empty stress-point export behavior, and UTF-8 export paths.
+The test runner executes regression and API integration checks. The regression suite covers:
 
-When Qt Widgets and Qt Test are available, `tests/smoke/windows_gui_smoke_test.cpp` is built as `SectionPropertySmokeTest`. That target constructs the GUI offscreen, switches section types, verifies property/stress/mesh state, and builds the documented Canvas example section.
+- H-section workbook values and four stress points.
+- Hollow box workbook values and four stress points.
+- Pipe workbook values and four stress points.
+- Supplied crane girder workbook values, principal properties, and four stress points.
+- Warping constant and shear-center behavior.
+- Non-reference crane girder approximate-path diagnostics and deterministic behavior.
+- Invalid Canvas inputs, duplicate IDs, auto-generated IDs, and valid Canvas calculations.
 
-### Numerical Validation
+The API integration tests cover:
 
-`Documents/Numerical_Validation_Report.md` compares expected and actual values from `Documents/source_requirements/Test Data.xls`, with the workbook data also represented in `tests/fixtures/test_data_reference.json`. The documented validation covers:
+- API version reporting.
+- Section creation.
+- Property calculation.
+- Property retrieval including warping constant and shear-center fields.
+- Stress point retrieval and memory cleanup.
+- Mesh creation and mesh counts.
+- CSV export.
+- ANSYS, ABAQUS, and Midas Civil export content.
+- Empty stress-point export paths.
+- UTF-8 export paths.
 
-- H section.
-- Hollow box section.
-- Pipe section.
-- Supplied quayside crane girder reference case.
-- Warping constant and shear-center behavior for supported section categories.
+The optional GUI smoke test target is `SectionPropertySmokeTest`. When Qt Widgets and Qt Test are available, it constructs the GUI using the offscreen Qt platform, switches through the parametric section types, checks property and stress table behavior, verifies mesh scene content, and builds the documented three-plate Canvas U-shape with area `2960 mm2`.
 
-The report records pass results within the tolerances encoded in the regression suite.
+The defect log records closed issues in calculation, geometry, export, integration, and GUI Canvas editing. Resolved issues include implementation of previously missing warping/shear-center fields, ANSYS centroid-offset handling, empty stress-point export handling, merge conflict resolution for FEM export work, and Canvas endpoint dragging.
 
-### Local Verification Performed for This Report
+The GitHub Actions workflow builds and tests the no-GUI path on Ubuntu and macOS, and includes a Windows core job. Each job configures with `SPT_QT_VERSION=OFF`, builds, runs CTest, and runs the examples.
 
-The following commands were executed in a safe no-GUI configuration:
+## 13. Local Verification Evidence
+
+The following commands were run locally for this report in a safe no-GUI configuration:
 
 ```text
 cmake -S . -B build-final-report -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
@@ -253,102 +388,93 @@ ctest --test-dir build-final-report --output-on-failure
 git diff --check
 ```
 
-Observed outcome:
+Observed results:
 
 - CMake configured successfully with AppleClang.
-- Qt Widgets were not used because `SPT_QT_VERSION=OFF`; core/API targets, tests, and examples remained enabled.
-- Core static library and C API shared library built successfully.
-- `SectionPropertyTests` built successfully.
+- Qt was intentionally disabled for the verification build.
+- `SectionPropertyCore`, `SectionPropertyApi`, examples, and `SectionPropertyTests` built successfully.
 - CTest executed the aggregated core/API regression target successfully.
-- `example1_parametric` reported H-section area `6520 mm2`, `Cw = 3.00833e+10 mm6`, and shear center `(50, 125) mm`.
-- `example2_canvas` reported Canvas area `2960 mm2` and centroid `(50, 60) mm`.
-- `example3_dll_batch` reported successful H-section and pipe-section batch calculations.
+- `example1_parametric` printed H-section area `6520 mm2`, `Cw = 3.00833e+10 mm6`, and shear center `(50, 125) mm`.
+- `example2_canvas` printed Canvas area `2960 mm2` and centroid `(50, 60) mm`.
+- `example3_dll_batch` printed successful H-section and pipe-section batch API results.
 - `git diff --check` reported no whitespace errors.
 
-This verification confirms the no-GUI core/API build and executable examples in the local environment. It does not replace the separate Windows Qt deployment checklist or external solver acceptance.
+This verification confirms the local no-GUI core/API build and example workflows. It does not replace the separately documented Windows Qt deployment checklist or solver-side FEM acceptance.
 
-### QA and Acceptance Documents
+## 14. User Documentation and Usage Guide
 
-Additional QA material is available in:
+The user-facing workflow is documented by the project and can be summarized as follows.
 
-- `Documents/Test_Report.md`
-- `Documents/Numerical_Validation_Report.md`
-- `Documents/Final_Acceptance_Checklist.md`
-- `Documents/Windows_Qt_Verification.md`
-- `Documents/Defect_Log.md`
-- `.github/workflows/cmake.yml`
+For predefined sections, the user selects a section type, enters the required dimensions, applies the calculation, and reviews the property table. H, box, pipe, and crane girder parameter names match the API definitions. Invalid or physically impossible combinations produce diagnostics; users are expected to correct input values and recalculate.
 
-`Documents/Defect_Log.md` records closed issues related to calculation, geometry, export, integration, and GUI Canvas editing. The final acceptance checklist records completed core/API evidence and explicitly identifies manual/external validation tasks still pending.
+For stress output points, the user reviews the generated points, edits global coordinates if needed, and observes updated principal coordinates. Stress points are output locations for reporting; they are not required to coincide with mesh nodes.
 
-## 8. User and Developer Documentation
+For mesh review, the user opens the FE Mesh tab and adjusts the refinement factor. The generated mesh gives visual feedback and summary data. It is not presented as a solver mesh.
 
-The repository includes documentation for users, API consumers, developers, and platform-specific verification.
+For Canvas sections, the user defines plate centerlines and thicknesses using either the table or graphical drawing tools. The Canvas builder checks for numeric coordinates, positive thickness, nonzero segment length, and unique explicit IDs. When validation succeeds, the Canvas section becomes the active model and the property table, stress points, previews, and mesh update.
 
-### User Documentation
+For export, the user or API client chooses CSV, JSON, ANSYS, ABAQUS, or Midas Civil output. Export failures generally indicate an invalid or unwritable target path.
 
-`Documents/User Manual.md` describes:
+Common troubleshooting guidance includes:
 
-- General tab workflow.
-- Section parameters.
-- Stress point editing.
-- FE mesh visualization.
-- Canvas plate input and validation.
-- Export behavior.
-- Validation notes and common issues.
+- Confirm that all required parameters are present and positive.
+- For pipes, confirm that thickness is less than half of the outer diameter.
+- For box sections, confirm that outer dimensions leave room for web thicknesses.
+- Treat non-reference crane girder warnings as an indication of approximate plate-graph behavior.
+- Confirm that export paths are writable.
+- If the GUI target is not built, confirm that Qt is installed and `SPT_QT_VERSION` is not `OFF`.
 
-The user manual explains that geometry inputs are in millimeters, calculations use double precision internally, GUI tables may round values, stress points are output locations rather than mesh nodes, and the FE mesh is intended for visualization.
+## 15. Developer Documentation and Build Instructions
 
-### API Documentation
+The development workflow requires CMake 3.16 or later, a C++17 compiler, and Git. Qt Widgets is optional. Qt 5 can be selected with `SPT_QT_VERSION=5`, Qt 6 with `SPT_QT_VERSION=6`, auto-discovery with `AUTO`, and no GUI with `OFF`.
 
-`Documents/API_Reference.md` documents:
+The portable no-GUI build is:
 
-- Shared library/header information.
-- Handle lifecycle.
-- Section type enums.
-- Required parameters.
-- Canvas input structs.
-- Calculation, property, stress-point, mesh, and export functions.
-- Error handling.
-- Units.
-- Minimal example code.
+```text
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DSPT_QT_VERSION=OFF
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
 
-`Documents/DLL_Interface.md` also describes the handle model and thread-safety note. Its export-format note is older than the current `API_Reference.md` and source implementation, so it should be reconciled during documentation maintenance.
+This path builds the core static library, shared API, examples, and tests without Qt.
 
-### Developer Documentation
+Qt 5 and Qt 6 builds follow the same CMake structure but include a Qt prefix path. When Qt Widgets is detected, CMake builds `SectionPropertyGui`. When Qt Test is also detected, CMake builds and registers `SectionPropertySmokeTest`.
 
-`Documents/Developer_Guide.md` documents prerequisites, repository structure, CMake targets, build commands, test commands, examples, extension steps for new section types and export formats, coding conventions, and troubleshooting guidance.
+On Windows, the documented core/API build uses Visual Studio 2022 and `SPT_QT_VERSION=OFF`. The GUI deployment flow uses `build_windows.bat`, which detects supported Qt installations, configures the build, runs CTest, and deploys the GUI executable with `windeployqt`. The Windows verification checklist also identifies expected artifacts such as `SectionPropertyTool.dll`, `SectionPropertyTool.lib`, `SectionPropertyCore.lib`, `SectionPropertyTests.exe`, `SectionPropertySmokeTest.exe`, example executables, and `SectionPropertyGui.exe`.
 
-`README.md` provides a project overview, features, supported section types, quick-start commands, platform build notes, validation status, examples, documentation index, and remaining validation boundaries.
+The CMake targets are:
 
-### Platform Documentation
+| Target | Purpose |
+|---|---|
+| `SectionPropertyCore` | Core geometry, calculation, mesh, stress, and export library |
+| `SectionPropertyApi` | Shared library exported as `SectionPropertyTool` |
+| `SectionPropertyTests` | Aggregated core/API test executable |
+| `example1_parametric` | H-section API example |
+| `example2_canvas` | Canvas section API example |
+| `example3_dll_batch` | Batch C API example |
+| `SectionPropertyGui` | Optional Qt Widgets GUI |
+| `SectionPropertySmokeTest` | Optional offscreen Qt GUI smoke test |
 
-`Documents/Windows_Qt_Verification.md` defines the Windows Qt 5.15.2 GUI build, deployment, expected artifacts, exported symbol verification, Qt deployment, automated smoke coverage, and manual runtime checklist.
+The developer guide also describes extension points. Adding a new section type requires changes to the core `SectionType`, API enum, API conversion, geometry builder, calculation/mesh/drawing paths, stress point behavior when needed, tests, and documentation. Adding a new export format requires extending the core and API export enums, routing through the API conversion layer, adding an exporter method, adding integration tests, and documenting acceptance status honestly.
 
-## 9. Deliverables Summary
+No third-party geometry or meshing dependency is bundled. Future geometry or meshing backends should be isolated behind the existing geometry and mesh modules.
 
-| Assignment category | Supporting artifacts | Delivery status |
-|---|---|---|
-| Requirements and design documents | Source requirement archive, workbook-derived fixture, architecture notes, README, implementation status, developer guide | Available as distributed evidence |
-| Development artifacts | Core source modules, C API, optional Qt GUI, exporters, examples, CMake configuration, Windows build script, CI workflow | Implemented for documented scope |
-| Testing and quality assurance | Aggregated CTest target, regression tests, API integration tests, GUI smoke test target when Qt is available, numerical validation report, acceptance checklist, defect log | Core/API verified locally; GUI and solver validations documented separately |
-| User documentation | User manual, API reference, developer guide, Windows Qt verification guide, README, DOCX manual package | Available; DOCX final review pending |
+## 16. Validation Boundaries and Future Work
 
-The core implementation is complete for the documented project scope and the local no-GUI verification confirms the core/API build, aggregated regression target, and examples. GUI support is optional and Qt-dependent. Pending Windows Qt visual deployment and solver-side FEM acceptance are manual/external validation activities; they do not indicate absence of the implemented core functionality.
-
-## 10. Validation Boundaries and Future Work
-
-The project has clear validation boundaries. These items are controlled next steps rather than evidence of missing core implementation:
+The project is a functional engineering software deliverable for the documented scope. The remaining items are validation or hardening boundaries:
 
 - Windows Qt deployment: final `windeployqt` packaging and visual/manual runtime inspection should be completed on an interactive Windows machine with the documented Qt installation.
-- FEM solver acceptance: ANSYS, ABAQUS, and Midas Civil writers are implemented and integration-tested for generated content, but acceptance should be confirmed inside the target solver applications.
+- FEM solver acceptance: ANSYS, ABAQUS, and Midas Civil writers are implemented and integration-tested for generated content, but generated files should be accepted inside the target solver applications before production solver use.
 - Non-reference crane girder geometry: arbitrary crane girder parameter sets use approximate plate-graph behavior until complete construction rules are confirmed or formally accepted.
-- DOCX user manual package: `Documents/User Manual.docx` is available, but final formatting and packaging review remains pending.
-- Documentation maintenance: older notes such as parts of `Documents/DLL_Interface.md` and `tests/gui_smoke/README.md` should be reconciled with the current API/export and GUI smoke-test implementation.
-- Requirements traceability: a formal traceability matrix would strengthen future submissions by linking source requirements, implementation modules, tests, and documentation.
+- DOCX manual package: `Documents/User Manual.docx` is available, but final formatting and packaging review remains pending.
+- Documentation maintenance: older notes such as parts of `Documents/DLL_Interface.md` and `tests/gui_smoke/README.md` should be reconciled with the current export and GUI smoke-test implementation.
+- Requirements traceability: a formal traceability matrix linking source requirements, code modules, tests, and documentation would improve future review packages.
 - Mesh capability: the current mesh is a visualization mesh; a solver-quality meshing backend would be future work if solver mesh export becomes a requirement.
 
-## 11. Conclusion
+## 17. Conclusion
 
-Beam Element Section Property Tool is suitable for submission as a functional engineering software deliverable. The repository provides a C++17 calculation core, C-compatible shared-library API, optional Qt GUI, build scripts, example programs, automated tests, numerical validation material, and user/developer documentation.
+Beam Element Section Property Tool is suitable for submission as a functional engineering software deliverable. The project includes a C++17 calculation core, C-compatible shared-library API, optional Qt GUI, examples, automated tests, numerical validation material, build scripts, CI configuration, and user/developer documentation.
 
-The local verification performed for this report confirms the core/API no-GUI build, aggregated CTest regression target, and example workflows. Remaining work is appropriately framed as external validation and future hardening: Windows Qt deployment inspection, solver-side FEM acceptance, DOCX final review, documentation reconciliation, and confirmation of arbitrary crane girder construction rules.
+The implementation covers the documented section types and workflows: parametric H, box, pipe, crane girder reference behaviour, Canvas thin-walled sections, property calculations, stress output points, coordinate transformations, visualization mesh generation, and multiple export formats. The local no-GUI verification confirms that the core/API build, aggregated CTest target, and example workflows execute successfully in the current environment.
+
+The remaining work is appropriately framed as external validation and future hardening. Manual Windows Qt deployment, solver-side FEM acceptance, DOCX final review, documentation reconciliation, and confirmation of arbitrary crane girder construction rules are important next steps, but they do not change the status of the delivered core/API implementation for the documented project scope.
